@@ -1,0 +1,49 @@
+name: Assemble studio files
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/assemble.yml"]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  assemble:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build studio.js and hand-sign pictures from the pinned source commit
+        run: |
+          set -euo pipefail
+          SRC=https://raw.githubusercontent.com/scaemrfung/Grade-1-Music/b66a7ecabb063d60d3b23c1a28118d1b2ca72b34
+          mkdir -p assets/handsigns
+          for f in do re mi fa so la ti do-high; do curl -fsSL "$SRC/assets/handsigns/$f.png" -o "assets/handsigns/$f.png"; done
+          curl -fsSL "$SRC/studio-tools.js" -o /tmp/src.js
+          python3 - <<'PY'
+          s = open('/tmp/src.js', encoding='utf-8').read()
+          R = [("/* Grade 1 Music · Studio tools", "/* Music Practice Studio"),
+               ("Most Grade 1 songs sit well", "Most children's songs sit well"),
+               ("· Grade 1 Music</p>", "· Music Practice Studio</p>"),
+               ("The piano the lesson plans use.", "Great on a classroom screen."),
+               ('return "/Grade-1-Music/assets/handsigns/";', 'return "assets/handsigns/";'),
+               ("Curwen / Kodály hand signs: Mr. Fung's picture set (assets/handsigns/*.png)", "Curwen / Kodály hand signs: a picture set (assets/handsigns/*.png)")]
+          for a, b in R:
+              assert s.count(a) == 1, a
+              s = s.replace(a, b)
+          open('studio.js', 'w', encoding='utf-8', newline='').write(s)
+          PY
+          sha256sum -c - <<'SUMS'
+          3e43962f06a6387f291d8a72ea5fe723f56b158dc560376c07c9d8261f97b432  studio.js
+          03bb5716fe598a4a97fe7fb3596882ef25e0217cb5be2110238226e9d161c675  assets/handsigns/do-high.png
+          0f33053e1d92cf6a6b85ebad4754154228d698262f5180f478f044b2f1956169  assets/handsigns/do.png
+          ec048664e5fe03bdbe9d68f72f4395fca5685355381567aba81971575c2884fe  assets/handsigns/fa.png
+          cfcd913577a27d3324dc8c7416f103efbdb9e0d250356e74341af3563cd7594d  assets/handsigns/la.png
+          a6f2ced69939ef8667cd17f5dc5aca650b70d21dee49a2975ee934da29108ff5  assets/handsigns/mi.png
+          a4eba2826eabfdfaca991ffe05785bea11e081abe85cddb472b03bedc75da77b  assets/handsigns/re.png
+          8849950be73e9fa589024501b27aee4c18d8c7bad6ca6e3fd35b42cbd1d38cf6  assets/handsigns/so.png
+          2c48cb64a8a42be8e35d7d248163311ac19a5d9d03cb16d20f9bd9d8aa4a640c  assets/handsigns/ti.png
+          SUMS
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add studio.js assets/handsigns
+          git diff --cached --quiet || git commit -m "Add studio.js and hand-sign pictures"
+          git push
