@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Music Practice Studio</title>
+<meta name="description" content="Free music tools for the classroom: piano, xylophone, percussion, beat and rhythm games, singing and listening games, hand-sign cards and classroom helpers. Every sound is made in the browser.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%B5%3C/text%3E%3C/svg%3E">
+<style>
+:root{--color-bg:#f4eef8;--color-fg:#2a1f3d;--color-line:#ddd0e8;--color-muted:#6b5f7a;--color-paper:#fbf8fe;--color-primary:#5c3d8a;--color-primary-fg:#fbf8fe;--color-primary-soft:#e8dff5;--color-subtle:#8a7d9a;--color-surface:#f7f2fb;--color-hover-line:#c4b5d6;--font-display:"Newsreader","Iowan Old Style",Georgia,serif;--font-sans:"Figtree",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--radius-lg:16px;--radius-xl:18px;--shadow-paper:0 1px 2px #2a1f3d0d,0 8px 24px #2a1f3d0d}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{font-family:var(--font-sans);background:var(--color-bg);color:var(--color-fg);margin:0;line-height:1.55}
+body::before{content:"";display:block;height:6px;background:linear-gradient(90deg,#5c3d8a 0 34%,#c4a035 34% 67%,#2f7d6b 67% 100%)}
+h1,h2,h3{font-family:var(--font-display);line-height:1.1}
+h1{margin:0 0 12px;font-size:clamp(34px,5vw,54px)}
+button{color:inherit}
+.page{max-width:1180px;margin:0 auto;padding:clamp(16px,3vw,32px) clamp(14px,3vw,32px) 24px}
+.kicker{letter-spacing:.08em;text-transform:uppercase;color:var(--color-subtle);margin:0 0 8px;font-size:12px;font-weight:650}
+.lead{color:var(--color-muted);max-width:44rem;font-size:17px;margin:0 0 10px}
+.hint{color:var(--color-muted);margin:0 0 12px;font-size:14px}
+.btn{font:inherit;border:0;border-radius:999px;justify-content:center;align-items:center;gap:8px;min-height:44px;padding:11px 16px;font-size:14.5px;font-weight:650;text-decoration:none;display:inline-flex;cursor:pointer}
+.btn-primary{background:var(--color-primary);color:var(--color-primary-fg)}
+.btn-primary:hover{background:#452d6a}
+.btn-ghost{color:var(--color-fg);border:1px solid var(--color-line);background:#fff}
+.btn-ghost:hover{border-color:var(--color-hover-line)}
+.btn:disabled{opacity:.55;cursor:default}
+.btn:focus-visible,button:focus-visible,input:focus-visible{outline:3px solid #c4a035;outline-offset:2px}
+.foot{max-width:1180px;margin:0 auto;padding:18px clamp(14px,3vw,32px) 36px;color:var(--color-subtle);font-size:13px;text-align:center}
+noscript p{background:#fff;border:1px solid var(--color-line);border-radius:12px;padding:14px}
+@media print{body::before{display:none}}
+</style>
+</head>
+<body>
+<main class="page">
+  <p class="kicker">Music tools</p>
+  <h1>Music Practice Studio</h1>
+  <p class="lead">Tap sounds in the room. A two-octave classroom piano and 36 more music tools for beat, rhythm, singing, listening, movement and classroom routines. Use it on a projector or a tablet.</p>
+  <p class="hint">Pick a tool. One opens at a time. ⛶ Big screen fills the projector. Sound starts only when you tap, and every sound is made on this device, so the tools keep working offline once the page has loaded. Share a tool with a link ending in its name, for example #piano.</p>
+  <noscript><p>These music tools need JavaScript. Please turn it on and reload the page.</p></noscript>
+  <div id="music-tools"></div>
+</main>
+<footer class="foot">Music Practice Studio</footer>
+<script src="studio.js?v=2"></script>
+<script>
+(function(){var el=document.getElementById("music-tools");function go(){if(window.G1StudioTools)window.G1StudioTools.mount(el);else el.innerHTML='<p class="hint">The music tools could not load. Refresh the page to try again.</p>';}if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",go);else go();})();
+</script>
+</body>
+</html>
