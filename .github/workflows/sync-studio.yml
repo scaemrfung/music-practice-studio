@@ -1,0 +1,57 @@
+name: One-time studio sync (pinned)
+on:
+  push:
+    branches: [sync-batch5]
+    paths: ['.github/workflows/sync-studio.yml']
+permissions:
+  contents: write
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: sync-batch5
+      - name: Fetch pinned source and verify
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/scaemrfung/Grade-1-Music/cd50304bf969740c3117043dd1ec756ad6adfe1b/studio-tools.js -o src.js
+          echo "9b7b1596c35941c5c36e4ffa6bb5489fefce2a27bd1d6d1aa82720d4f7ffc5cb  src.js" | sha256sum -c -
+      - name: Build standalone studio.js
+        run: |
+          cat > t.py <<'PYEOF'
+          import sys
+          src=open('src.js').read()
+          R=[("/* Grade 1 Music · Studio tools","/* Music Practice Studio"),
+             ("Mr. Fung's picture set","a picture set"),
+             ('return "/Grade-1-Music/assets/handsigns/";','return "assets/handsigns/";'),
+             ("Most Grade 1 songs sit well","Most children's songs sit well"),
+             ("The piano the lesson plans use.","Great on a classroom screen."),
+             ("Use before a school concert or assembly.","Use before a class concert or assembly."),
+             ("/* Songs from the lesson pages' score data (every","/* Traditional public-domain songs (every"),
+             ("Echo by phrase, the way every song in the lessons is taught:","Echo by phrase, the way children's songs are usually taught:"),
+             ("Echo the lesson songs phrase by phrase, then build them up","Echo favourite songs phrase by phrase, then build them up"),
+             ('Card " + (i + 1) + " · Grade 1 Music', 'Card " + (i + 1) + " · Music Practice Studio')]
+          for a,b in R:
+              n=src.count(a); assert n>=1,(a,n); src=src.replace(a,b)
+          open('studio.js','w').write(src)
+          PYEOF
+          python3 t.py
+          echo "be2927de2bfce819d42d6783822405d8a7a3dd7f96a9201b058e3426ba35e4d2  studio.js" | sha256sum -c -
+          rm -f src.js t.py
+      - name: Update index.html and README.md
+        run: |
+          sed -i -e 's/and 47 more music tools/and 57 more music tools/' -e 's/studio.js?v=3/studio.js?v=4/' index.html
+          python3 - <<'PYEOF'
+          s=open('README.md').read()
+          line="- Many tools take settings after the name, for example `#ostinato?ost=titita&inst=woodblock`, `#maze?notes=sml&len=4` or `#restspot?rests=2`. The settings only choose options; nothing plays until someone taps.\n"
+          assert s.count("- The volume meter")==1
+          open('README.md','w').write(s.replace("- The volume meter",line+"- The volume meter"))
+          PYEOF
+          printf '%s  index.html\n%s  README.md\n' 4bdf5b94cd1b58529e0d4d218f387e9fd63ecf86e99491ec8c9c7cc0a24d3d45 bd56412f2eb9a7e09944422c17e0bd01f6804a3fd300a4d478af98456293dcf3 | sha256sum -c -
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add studio.js index.html README.md
+          git commit -m "Sync standalone: 58 tools, presets, Conductor fix"
+          git push origin HEAD:sync-batch5
