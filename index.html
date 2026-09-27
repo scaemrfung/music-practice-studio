@@ -35,13 +35,13 @@ noscript p{background:#fff;border:1px solid var(--color-line);border-radius:12px
 <main class="page">
   <p class="kicker">Music tools</p>
   <h1>Music Practice Studio</h1>
-  <p class="lead">Tap sounds in the room. A two-octave classroom piano and 57 more music tools for beat, rhythm, singing, listening, movement and classroom routines. Use it on a projector or a tablet.</p>
+  <p class="lead">Tap sounds in the room. A two-octave classroom piano and 59 more music tools for beat, rhythm, singing, listening, movement and classroom routines. Use it on a projector or a tablet.</p>
   <p class="hint">Pick a tool. One opens at a time. ⛶ Big screen fills the projector. Sound starts only when you tap, and every sound is made on this device, so the tools keep working offline once the page has loaded. Share a tool with a link ending in its name, for example #piano.</p>
   <noscript><p>These music tools need JavaScript. Please turn it on and reload the page.</p></noscript>
   <div id="music-tools"></div>
 </main>
 <footer class="foot">Music Practice Studio</footer>
-<script src="studio.js?v=4"></script>
+<script src="studio.js?v=5"></script>
 <script>
 (function(){var el=document.getElementById("music-tools");function go(){if(window.G1StudioTools)window.G1StudioTools.mount(el);else el.innerHTML='<p class="hint">The music tools could not load. Refresh the page to try again.</p>';}if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",go);else go();})();
 </script>
