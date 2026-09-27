@@ -265,6 +265,10 @@
     if (label) wrap.insertBefore(h("span", { class: "g1t-seg-label" }, label), wrap.firstChild);
     return wrap;
   }
+  /* Presets from the link: #toolid?key=value&key=value (settings only, never autoplay). */
+  var PARAMS = {};
+  function prm(k, allowed, def) { var v = PARAMS[k]; if (v == null) return def; for (var i = 0; i < allowed.length; i++) if (String(allowed[i]) === String(v)) return allowed[i]; return def; }
+  function prmNum(k, lo, hi, def) { var v = parseFloat(PARAMS[k]); return isFinite(v) ? Math.max(lo, Math.min(hi, v)) : def; }
   function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
   function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
 
@@ -336,7 +340,7 @@
 
   /* ---------- Generic listening game ---------- */
   function listeningGame(cfg) {
-    var mode = cfg.modes[0].value, round = null, stars = 0, tries = 0;
+    var mode = prm("mode", cfg.modes.map(function (m) { return m.value; }), cfg.modes[0].value), round = null, stars = 0, tries = 0;
     var root = h("div", { class: "g1t-game" });
     var status = h("p", { class: "g1t-status", "aria-live": "polite" }, cfg.intro);
     var score = h("p", { class: "g1t-score" }, "");
@@ -348,7 +352,7 @@
       answersBox.innerHTML = "";
       cfg.answers(mode).forEach(function (a) {
         var b = h("button", { type: "button", class: "g1t-answer", "data-answer": a.id }, [
-          h("span", { class: "g1t-answer-e", "aria-hidden": "true" }, a.emoji), h("span", null, a.label)
+          a.html ? h("span", { class: "g1t-answer-e g1t-answer-art", "aria-hidden": "true", html: a.html }) : h("span", { class: "g1t-answer-e", "aria-hidden": "true" }, a.emoji), h("span", null, a.label)
         ]);
         b.addEventListener("click", function () { answer(a, b); });
         answersBox.appendChild(b);
@@ -398,7 +402,7 @@
 
   /* ---------- Tool: steady beat ---------- */
   function toolBeat() {
-    var bpm = 90, group = 4, sound = "wood", beat = 0, taps = [];
+    var bpm = Math.round(prmNum("bpm", 40, 200, 90)), group = prm("group", [1, 2, 3, 4], 4), sound = "wood", beat = 0, taps = [];
     var circle = h("div", { class: "g1t-pulse", "aria-hidden": "true" });
     var circleE = h("span", { class: "g1t-pulse-e" }, "🚶");
     var circleN = h("span", { class: "g1t-pulse-n" }, "");
@@ -477,7 +481,7 @@
       { s: "do", l: "C", f: NOTE.C4 }, { s: "re", l: "D", f: NOTE.D4 }, { s: "mi", l: "E", f: NOTE.E4 }, { s: "fa", l: "F", f: NOTE.F4 },
       { s: "so", l: "G", f: NOTE.G4 }, { s: "la", l: "A", f: NOTE.A4 }, { s: "ti", l: "B", f: NOTE.B4 }, { s: "do", l: "C", f: NOTE.C5 }
     ];
-    var labels = "solfa", voice = "mallet", focus = false, keys = "asdfghjk", bars = [];
+    var labels = prm("labels", ["solfa", "letters", "hands"], "solfa"), voice = "mallet", focus = PARAMS.notes === "sml", keys = "asdfghjk", bars = [];
     var wrap = h("div", { class: "g1t-xylo", role: "group", "aria-label": "Xylophone, C major" });
     function hit(i) {
       var b = bars[i];
@@ -587,7 +591,7 @@
 
   /* ---------- Tool: so-mi-la echo game ---------- */
   function toolEcho() {
-    var level = "sm", len = 3, showMe = true, pattern = null, input = [], busy = false, stars = 0, tries = 0;
+    var level = prm("notes", ["sm", "sml"], "sm"), len = prm("len", [3, 4], 3), showMe = true, pattern = null, input = [], busy = false, stars = 0, tries = 0;
     var names = ["la", "so", "mi"], colors = { la: BW.A, so: BW.G, mi: BW.E };
     var status = h("p", { class: "g1t-status", "aria-live": "polite" }, "Press ▶ Listen. Then tap the bars to play it back.");
     var progress = h("div", { class: "g1t-progress", "aria-hidden": "true" });
@@ -1122,7 +1126,9 @@
 
   /* ---------- Tool: rhythm maker ---------- */
   function toolRhythm() {
-    var pat = ["ta", "ta", "titi", "ta", "ta", "titi", "ta", "rest"], bpm = 90, sound = "clap", loop = false, now_ = -1, beat = 0;
+    var pat = ["ta", "ta", "titi", "ta", "ta", "titi", "ta", "rest"], bpm = 90;
+    if (PARAMS.p) { var pp = String(PARAMS.p).split(/[.,]/).filter(function (x) { return RLAB[x]; }); if (pp.length) pat = pat.map(function (_, i) { return pp[i % pp.length]; }); }
+    var sound = "clap", loop = false, now_ = -1, beat = 0;
     var notation = h("div", { class: "g1t-rhythm-view" });
     var cells = h("div", { class: "g1t-cells" });
     var playBtn = btn("▶ Play", "btn-primary g1t-xl", toggle);
@@ -1165,7 +1171,7 @@
 
   /* ---------- Tool: rhythm dictation ---------- */
   function toolDictation() {
-    var rests = false, round = null, stars = 0, tries = 0, bpm = 80;
+    var rests = PARAMS.rests === "1", round = null, stars = 0, tries = 0, bpm = 80;
     var status = h("p", { class: "g1t-status", "aria-live": "polite" }, "Press ▶ Listen. You will hear 4 clicks, then the rhythm.");
     var choices = h("div", { class: "g1t-choices" });
     var score = h("p", { class: "g1t-score" });
@@ -1216,7 +1222,7 @@
 
   /* ---------- Tool: drum echo (call and response) ---------- */
   function toolDrumEcho() {
-    var bpm = 80, rests = false, busy = false, taps = [], windowStart = 0, gap = 0.75, pattern = null, stars = 0, tries = 0, countIn = true;
+    var bpm = 80, rests = PARAMS.rests === "1", busy = false, taps = [], windowStart = 0, gap = 0.75, pattern = null, stars = 0, tries = 0, countIn = true;
     var status = h("p", { class: "g1t-status", "aria-live": "polite" }, "Press ▶ Start. Count 1, 2, 3, 4 with me, listen to my drum, then play it back on the big drum.");
     var callRow = h("div", { class: "g1t-echo-rows" });
     var drum = h("button", { type: "button", class: "g1t-bigdrum", "aria-label": "Big drum. Tap to play." }, [h("span", { "aria-hidden": "true" }, "🥁"), h("b", null, "Tap here")]);
@@ -1287,7 +1293,7 @@
 
   /* ---------- Tool: hand-sign flashcards ---------- */
   function toolFlash() {
-    var set = "smld", hide = false, auto = false, cur = null, shown = false, ladderOn = false;
+    var set = prm("notes", ["sm", "sml", "smld", "all"], "smld"), hide = false, auto = false, cur = null, shown = false, ladderOn = false;
     var PITCH = { do: NOTE.C4, re: NOTE.D4, mi: NOTE.E4, fa: NOTE.F4, so: NOTE.G4, la: NOTE.A4, ti: NOTE.B4, "do'": NOTE.C5 };
     var COL = { do: BW.C, re: BW.D, mi: BW.E, fa: BW.F, so: BW.G, la: BW.A, ti: BW.B, "do'": BW.C };
     var card = h("div", { class: "g1t-flash", "aria-live": "polite" });
@@ -1711,7 +1717,7 @@
     { n: "Apple, peach, pear, plum", l: [[["Ap-ple,", "titi"], ["peach,", "ta"], ["pear,", "ta"], ["plum", "ta"]], [["Tell me", "titi"], ["when your", "titi"], ["birth-day", "titi"], ["comes!", "ta"]]] }
   ];
   function toolBeatRhythm() {
-    var ci = 0, bpm = 84, parts = "both", beat = 0, cur = -1;
+    var ci = Math.max(0, ["bee", "buns", "pease", "rain", "apple"].indexOf(PARAMS.chant)), bpm = 84, parts = "both", beat = 0, cur = -1;
     var grid = h("div", { class: "g1t-br-grid" });
     var playBtn = btn("▶ Play the chant", "btn-primary g1t-xl", toggle);
     function flat() { var o = []; CHANTS[ci].l.forEach(function (ln) { ln.forEach(function (b) { o.push(b); }); }); return o; }
@@ -2173,9 +2179,9 @@
   }
 
   /* ---------- Tool: conductor ---------- */
-  var DYN = [{ v: "p", e: "🐭", n: "Soft", sym: "p", g: 0.28, c: "#8e24aa" }, { v: "mf", e: "🙂", n: "Medium", sym: "mf", g: 0.6, c: "#00897b" }, { v: "f", e: "🦁", n: "Loud", sym: "f", g: 1, c: "#c62828" }];
+  var CDYN = [{ v: "p", e: "🐭", n: "Soft", sym: "p", g: 0.28, c: "#8e24aa" }, { v: "mf", e: "🙂", n: "Medium", sym: "mf", g: 0.6, c: "#00897b" }, { v: "f", e: "🦁", n: "Loud", sym: "f", g: 1, c: "#c62828" }];
   function toolConductor() {
-    var playing = false, bpm = 90, dyn = DYN[1], guide = true, surprise = false, beat = 0, vol = dyn.g, ramp = 0;
+    var playing = false, bpm = 90, dyn = CDYN[1], guide = true, surprise = false, beat = 0, vol = dyn.g, ramp = 0;
     var sign = h("div", { class: "g1t-cond-sign", "aria-live": "polite" });
     var baton = h("div", { class: "g1t-cond-baton", "aria-hidden": "true" }, "🪄");
     var mainBtn = btn("▶ Play!", "btn-primary g1t-xl g1t-cond-main", toggle);
@@ -2194,7 +2200,7 @@
     function setDyn(d) { dyn = d; vol = d.g; ramp = 0; render(); }
     var runner = Loop(function (t) {
       var g = 60 / bpm;
-      if (ramp) { vol = Math.max(0.2, Math.min(1, vol + ramp * 0.1)); var nd = vol < 0.45 ? DYN[0] : vol < 0.8 ? DYN[1] : DYN[2]; if (nd !== dyn) { dyn = nd; at(t, render); } if (vol <= 0.2 || vol >= 1) ramp = 0; }
+      if (ramp) { vol = Math.max(0.2, Math.min(1, vol + ramp * 0.1)); var nd = vol < 0.45 ? CDYN[0] : vol < 0.8 ? CDYN[1] : CDYN[2]; if (nd !== dyn) { dyn = nd; at(t, render); } if (vol <= 0.2 || vol >= 1) ramp = 0; }
       if (guide) { S.shaker(t, vol); S.shaker(t + g / 2, vol * 0.6); }
       at(t, function () { flash(baton, "is-beat", 180); });
       beat++;
@@ -2202,7 +2208,7 @@
         var r = Math.random();
         at(t + g * 0.9, function () {
           if (r < 0.35) { stopPlay(); later(function () { if (!playing) startPlay(); }, 4 * g * 1000); }
-          else if (r < 0.7) setDyn(pick(DYN.filter(function (x) { return x !== dyn; })));
+          else if (r < 0.7) setDyn(pick(CDYN.filter(function (x) { return x !== dyn; })));
           else { bpm = pick([70, 90, 110, 130].filter(function (x) { return x !== bpm; })); render(); }
         });
       }
@@ -2215,7 +2221,7 @@
     var el = h("div", { class: "g1t-cond" }, [h("div", { class: "g1t-cond-stage" }, [baton, sign]),
       h("div", { class: "g1t-row" }, [mainBtn]),
       h("div", { class: "g1t-controls" }, [
-        seg(DYN.map(function (d) { return { value: d.v, label: d.e + " " + d.n + " (" + d.sym + ")" }; }), dyn.v, function (v) { setDyn(DYN.filter(function (d) { return d.v === v; })[0]); }, "Dynamics"),
+        seg(CDYN.map(function (d) { return { value: d.v, label: d.e + " " + d.n + " (" + d.sym + ")" }; }), dyn.v, function (v) { setDyn(CDYN.filter(function (d) { return d.v === v; })[0]); }, "Dynamics"),
         h("div", { class: "g1t-tempo" }, [btn("📈 Get louder", "btn-ghost g1t-lg", function () { ramp = 1; render(); }), btn("📉 Get softer", "btn-ghost g1t-lg", function () { ramp = -1; render(); })]),
         seg([{ value: 70, label: "🐢 Slow" }, { value: 90, label: "🚶 Walking" }, { value: 110, label: "🐇 Fast" }, { value: 130, label: "🐆 Very fast" }], bpm, function (v) { bpm = v; render(); }, "Tempo"),
         seg([{ value: true, label: "🪇 Guide shaker on" }, { value: false, label: "🔇 Class only" }], guide, function (v) { guide = v; }, "Sound"),
@@ -2223,7 +2229,7 @@
       h("p", { class: "hint" }, "Hand out shakers. Play when the sign says PLAY, freeze on STOP, and match the size of the lion or mouse. Keys: Space = play/stop, P / M / F = soft, medium, loud. A student can be the conductor too.")]);
     return { el: el, stop: function () { playing = false; runner.stop(); silence(); }, key: function (k) {
       if (k === " " || k === "enter") { toggle(); return true; }
-      var d = DYN.filter(function (x) { return x.v === (k === "m" ? "mf" : k); })[0]; if (d) { setDyn(d); var b = el.querySelector('.g1t-seg[aria-label="Dynamics"] button:nth-of-type(' + (DYN.indexOf(d) + 1) + ")"); if (b) { el.querySelectorAll('.g1t-seg[aria-label="Dynamics"] button').forEach(function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); }); } return true; }
+      var d = CDYN.filter(function (x) { return x.v === (k === "m" ? "mf" : k); })[0]; if (d) { setDyn(d); var b = el.querySelector('.g1t-seg[aria-label="Dynamics"] button:nth-of-type(' + (CDYN.indexOf(d) + 1) + ")"); if (b) { el.querySelectorAll('.g1t-seg[aria-label="Dynamics"] button').forEach(function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); }); } return true; }
       return false; } };
   }
 
@@ -2426,7 +2432,7 @@
       [["how", "fa", 1], ["I", "fa", 1], ["won-", "mi", 1], ["der", "mi", 1], ["what", "re", 1], ["you", "re", 1], ["are.", "do", 2]]] }
   ];
   function toolSingalong() {
-    var si = 0, speed = 1, melody = true, showSolfa = false, flat = [], spans = [], idx = 0, beatInSong = 0, playing = false;
+    var si = Math.max(0, SONGS.map(function (s) { return s.id; }).indexOf(PARAMS.song)), speed = 1, melody = PARAMS.tune !== "0", showSolfa = PARAMS.solfa === "1", flat = [], spans = [], idx = 0, beatInSong = 0, playing = false;
     var sheet = h("div", { class: "g1t-sing" });
     var status = h("p", { class: "g1t-status", "aria-live": "polite" }, "Pick a song and press ▶ Sing along. Follow the bouncing ball.");
     var playBtn = btn("▶ Sing along", "btn-primary g1t-xl", toggle);
@@ -2538,7 +2544,7 @@
 
   /* ---------- Tool: rhythm puzzle ---------- */
   function toolRPuzzle() {
-    var len = 4, rests = false, target = null, slots = [], bpm = 88, solved = 0, tries = 0, dragKind = null;
+    var len = prm("len", [4, 8], 4), rests = PARAMS.rests === "1", target = null, slots = [], bpm = 88, solved = 0, tries = 0, dragKind = null;
     var status = h("p", { class: "g1t-status", "aria-live": "polite" }, "Press ▶ Hear the rhythm. Then drag (or tap) the cards into the boxes to match it.");
     var slotRow = h("div", { class: "g1t-rp-slots" }), tray = h("div", { class: "g1t-rp-tray" }), score = h("p", { class: "g1t-score" });
     function playPat(p, t) { var g = 60 / bpm; S.woodblock(t, 0.5, true); S.woodblock(t + g, 0.5, true); S.woodblock(t + 2 * g, 0.5, true); S.woodblock(t + 3 * g, 0.5, true); var s = t + 4 * g; p.forEach(function (x, i) { if (x === "ta") S.clap(s + i * g, 1); if (x === "titi") { S.clap(s + i * g, 1); S.clap(s + i * g + g / 2, 0.85); } }); }
@@ -2719,7 +2725,7 @@
 
   /* ---------- Tool: solfege staircase ---------- */
   function toolStairs() {
-    var ALL = ["do", "re", "mi", "fa", "so", "la", "ti", "do'"], set = "pent", pos = -1, game = null, stars = 0;
+    var ALL = ["do", "re", "mi", "fa", "so", "la", "ti", "do'"], set = prm("steps", ["sml", "pent", "all"], "pent"), pos = -1, game = null, stars = 0;
     var COLS = ["#e53935", "#fb8c00", "#fdd835", "#8bc34a", "#00897b", "#3949ab", "#d81b60", "#e53935"];
     var stairs = h("div", { class: "g1t-st" }), kid = h("span", { class: "g1t-st-kid", "aria-hidden": "true" }, "🧒");
     var status = h("p", { class: "g1t-status", "aria-live": "polite" }, "Tap a step to sing it. Climb up and down the scale, or play ‘Where did I stop?’");
@@ -2925,8 +2931,671 @@
       stage, status, h("div", { class: "g1t-pads g1t-cc-pads" }, [clapBtn]), score,
       h("h3", { class: "g1t-sub" }, "Concert manners"),
       h("ul", { class: "g1t-cc-cards" }, CARDS.map(function (c) { return h("li", null, [h("span", { "aria-hidden": "true" }, c[0]), c[1]]); })),
-      h("p", { class: "hint" }, "Use before a school concert or assembly. The whole class can be the audience: one child taps Clap for everyone, or everyone claps for real and the teacher taps. Key: C = clap.")]);
+      h("p", { class: "hint" }, "Use before a class concert or assembly. The whole class can be the audience: one child taps Clap for everyone, or everyone claps for real and the teacher taps. Key: C = clap.")]);
     return { el: el, stop: silence, key: function (k) { if (k === "c") { clapBtn.click(); return true; } return false; } };
+  }
+
+  /* ================= Batch 5 tools (the fourth batch added to the Studio) ================= */
+  /* Traditional public-domain songs (every syllable is one beat; "_" is a one-beat rest,
+     "/" marks the end of a phrase). Pitches: so, mi, la (and do). */
+  var SITE_SONGS = [
+    { id: "hello", n: "Hello Everybody", s: "Hel-:so lo:mi ev-:so ry-:so bo-:mi dy:so / how:so are:mi you:so to-:so day?:mi _" },
+    { id: "rain", n: "Rain, Rain", s: "Rain,:so rain,:so go:mi a-:mi way,:so _ / come:so a-:so gain:mi a-:mi noth-:so er:so day.:mi _" },
+    { id: "seesaw", n: "See-Saw", s: "See-:so saw,:mi up:so and:mi down,:so _ / in:so the:mi air:so and:mi on:so the:mi ground.:so _" },
+    { id: "starlight", n: "Star Light", s: "Star:so light,:so star:mi bright,:so / first:so star:so I:mi see:so / to-:mi night.:so _" },
+    { id: "engine", n: "Engine, Engine", s: "En-:so gine,:so en-:so gine,:so num-:mi ber:mi nine,:so _ / go-:so ing:so down:so Chi-:so ca-:mi go:mi line.:so _" },
+    { id: "teddy", n: "Teddy Bear", s: "Ted-:so dy:so bear,:mi ted-:so dy:so bear,:mi / turn:so a-:so round.:mi _ / Ted-:so dy:so bear,:mi ted-:so dy:so bear,:mi / touch:so the:so ground.:mi _" },
+    { id: "acka", n: "Acka Backa", s: "Ack-:so a:so back-:mi a:so / so-:so da:so crack-:mi a,:so / ack-:so a:so back-:mi a:so / boo.:so _" },
+    { id: "bounce", n: "Bounce High", s: "Bounce:so high,:mi bounce:la low,:so / bounce:so the:so ball:la to:so / Shi-:mi loh.:so" },
+    { id: "lucy", n: "Lucy Locket", s: "Lu-:la cy:so Lock-:mi et:so / lost:la her:so pock-:mi et,:so / Kit-:la ty:so Fish-:mi er:so / found:la it.:so" },
+    { id: "bellhorses", n: "Bell Horses", s: "Bell:so hors-:so es,:mi bell:so hors-:so es,:mi / what:la time:so of:mi day?:so / One:so o-:so clock,:mi two:so o-:so clock,:mi / time:la to:so go:mi a-:so way.:mi" },
+    { id: "knocking", n: "Somebody’s Knocking", s: "Some-:so body’s:so knock-:mi ing:so / at:so your:mi door.:so _" }
+  ];
+  var SOL_C = { so: "#00897b", mi: "#fdd835", la: "#5e35b1", do: "#e53935" };
+  function songById(id) { for (var i = 0; i < SITE_SONGS.length; i++) if (SITE_SONGS[i].id === id) return SITE_SONGS[i]; return SITE_SONGS[1]; }
+  function songPhrases(song) {
+    if (song._p) return song._p;
+    song._p = song.s.split(" / ").map(function (ph) {
+      return ph.split(" ").filter(Boolean).map(function (tok) { if (tok === "_") return { w: "", p: "" }; var k = tok.lastIndexOf(":"); return { w: tok.slice(0, k), p: tok.slice(k + 1) }; });
+    });
+    return song._p;
+  }
+  function songPick(ids, def) { var id = prm("song", ids, def); return id; }
+  /* A word chip that sits higher or lower with its pitch. */
+  function noteChip(n, solfa) {
+    var c = h("span", { class: "g1t-cp-chip" + (n.p ? " is-" + n.p : " is-rest") }, [h("span", { class: "g1t-cp-w" }, n.w || "(sh)")]);
+    if (solfa && n.p) c.appendChild(h("span", { class: "g1t-cp-s", style: "--sc:" + SOL_C[n.p] }, n.p));
+    return c;
+  }
+  function speedSeg(val, set, label) {
+    return seg([{ value: 84, label: "🐢 Slow" }, { value: 100, label: "🚶 Walking" }, { value: 116, label: "🐇 Quicker" }], val, set, label || "Speed");
+  }
+
+  /* ---------- Tool: copycat songs (echo a song phrase by phrase) ---------- */
+  function toolCopycat() {
+    var ids = SITE_SONGS.map(function (s) { return s.id; });
+    var song = songById(songPick(ids, "rain")), pi = 0, build = PARAMS.build === "1", solfa = PARAMS.solfa === "1", bpm = 100, busy = false;
+    var view = h("div", { class: "g1t-cp-view", "aria-live": "off" }), dots = h("div", { class: "g1t-cp-dots", "aria-hidden": "true" });
+    var who = h("div", { class: "g1t-cp-who" }, "🧑‍🏫 My turn");
+    var status = h("p", { class: "g1t-status", "aria-live": "polite" }, "Press ▶ My turn. Listen to the phrase, then sing it back when it says “Your turn”.");
+    var playBtn = btn("▶ My turn", "btn-primary g1t-xl", play);
+    var chips = [];
+    function range() { var ph = songPhrases(song); return build ? ph.slice(0, pi + 1) : [ph[pi]]; }
+    function render() {
+      var ph = songPhrases(song);
+      view.innerHTML = ""; chips = [];
+      range().forEach(function (line) { var row = h("div", { class: "g1t-cp-line" }); line.forEach(function (n) { var c = noteChip(n, solfa); chips.push(c); row.appendChild(c); }); view.appendChild(row); });
+      dots.innerHTML = "";
+      ph.forEach(function (_, i) { dots.appendChild(h("span", { class: "g1t-cp-dot" + (i === pi ? " is-now" : i < pi ? " is-done" : "") }, String(i + 1))); });
+      status.textContent = (build && pi ? "Phrases 1–" + (pi + 1) : "Phrase " + (pi + 1)) + " of " + ph.length + ". Press ▶ My turn.";
+    }
+    function light(k) { chips.forEach(function (c, i) { c.classList.toggle("is-now", i === k); }); }
+    function play() {
+      audio();
+      if (busy) { stop(); status.textContent = "Stopped."; return; }
+      silence(); busy = true; playBtn.textContent = "⏹ Stop";
+      var notes = [].concat.apply([], range()), beat = 60 / bpm, t0 = now() + 0.15;
+      who.textContent = "🧑‍🏫 My turn"; who.className = "g1t-cp-who";
+      notes.forEach(function (n, i) { var t = t0 + i * beat; if (n.p) S.mallet(SF[n.p], t, 0.8); at(t, function () { light(i); }); });
+      var t1 = t0 + notes.length * beat + beat;
+      at(t1 - beat, function () { light(-1); who.textContent = "🧒 Your turn"; who.className = "g1t-cp-who is-you"; status.textContent = "Your turn! Sing it back."; });
+      notes.forEach(function (n, i) { var t = t1 + i * beat; S.woodblock(t, 0.25, true); at(t, function () { light(i); }); });
+      at(t1 + notes.length * beat, function () {
+        busy = false; light(-1); playBtn.textContent = "🔁 My turn again"; who.textContent = "✨ Well sung"; who.className = "g1t-cp-who";
+        var last = pi >= songPhrases(song).length - 1;
+        status.textContent = last ? "That was the whole song! Sing it all together, or pick another song." : "Good! Press ⏭ Next phrase when the class is ready.";
+      });
+    }
+    function stop() { busy = false; silence(); clearOwned(); light(-1); playBtn.textContent = "▶ My turn"; }
+    function go(d) { stop(); var n = songPhrases(song).length; pi = Math.max(0, Math.min(n - 1, pi + d)); render(); }
+    var songSeg = seg(SITE_SONGS.map(function (s) { return { value: s.id, label: s.n }; }), song.id, function (v) { stop(); song = songById(v); pi = 0; render(); }, "Song");
+    render();
+    var el = h("div", null, [
+      h("div", { class: "g1t-controls" }, [songSeg]),
+      h("div", { class: "g1t-controls" }, [
+        seg([{ value: false, label: "One phrase at a time" }, { value: true, label: "Build it up" }], build, function (v) { stop(); build = v; render(); }, "Echo"),
+        seg([{ value: false, label: "Words" }, { value: true, label: "Words + so-mi" }], solfa, function (v) { solfa = v; render(); }, "Show"),
+        speedSeg(bpm, function (v) { bpm = v; })]),
+      h("div", { class: "g1t-cp-stage" }, [who, view, dots]),
+      h("div", { class: "g1t-row" }, [playBtn, btn("⏮ Back", "btn-ghost g1t-lg", function () { go(-1); }), btn("⏭ Next phrase", "btn-ghost g1t-lg", function () { go(1); })]),
+      status,
+      h("p", { class: "hint" }, "Echo by phrase, the way children's songs are usually taught: the bells sing a phrase, the class sings it back while the words light up. “Build it up” adds one more phrase each time until the class sings the whole song.")]);
+    return { el: el, stop: stop, key: function (k) { if (k === " ") { play(); return true; } if (k === "arrowright") { go(1); return true; } if (k === "arrowleft") { go(-1); return true; } } };
+  }
+
+  /* ---------- Tool: song + ostinato (two groups at once) ---------- */
+  var OSTI = [
+    { id: "beat", n: "ta ta", pat: ["ta", "ta"] },
+    { id: "rest", n: "ta sh", pat: ["ta", "rest"] },
+    { id: "titita", n: "ti-ti ta", pat: ["titi", "ta"] },
+    { id: "sm", n: "so mi (bells)", pat: ["ta", "ta"], bells: ["so", "mi"] }
+  ];
+  var OST_INST = [
+    { id: "drum", n: "🥁 Drum", p: function (t, v) { S.drum(t, v, true); } },
+    { id: "sticks", n: "🥢 Sticks", p: function (t, v) { S.sticks(t, v); } },
+    { id: "shaker", n: "🥚 Shaker", p: function (t, v) { S.shaker(t, v); } },
+    { id: "woodblock", n: "🪵 Woodblock", p: function (t, v) { S.woodblock(t, v); } },
+    { id: "tambourine", n: "Tambourine", p: function (t, v) { S.tambourine(t, v * 0.8); } }
+  ];
+  function toolOstinato() {
+    var ids = SITE_SONGS.map(function (s) { return s.id; });
+    var song = songById(songPick(ids, "rain")), osti = prm("ost", OSTI.map(function (o) { return o.id; }), "beat"), inst = prm("inst", OST_INST.map(function (o) { return o.id; }), "drum");
+    var tune = PARAMS.tune !== "0", bpm = 100, playing = false, chips = [];
+    function O() { for (var i = 0; i < OSTI.length; i++) if (OSTI[i].id === osti) return OSTI[i]; }
+    function I() { for (var i = 0; i < OST_INST.length; i++) if (OST_INST[i].id === inst) return OST_INST[i]; }
+    var laneA = h("div", { class: "g1t-os-words" }), card = h("div", { class: "g1t-os-card" }), boxes = h("div", { class: "g1t-os-boxes", "aria-hidden": "true" });
+    var status = h("p", { class: "g1t-status", "aria-live": "polite" }, "Split the class: Group A sings the song, Group B plays the ostinato. Press ▶ Start: Group B starts, Group A joins after 4 beats.");
+    var playBtn = btn("▶ Start", "btn-primary g1t-xl", toggle);
+    function render() {
+      laneA.innerHTML = ""; chips = [];
+      songPhrases(song).forEach(function (line) { var row = h("div", { class: "g1t-cp-line" }); line.forEach(function (n) { var c = noteChip(n, false); chips.push(c); row.appendChild(c); }); laneA.appendChild(row); });
+      var o = O();
+      card.innerHTML = rhythmSvg(o.pat, { words: true });
+      if (o.bells) card.appendChild(h("div", { class: "g1t-os-bells" }, o.bells.map(function (b) { return h("span", { style: "--sc:" + SOL_C[b] }, b); })));
+      boxes.innerHTML = "";
+      o.pat.forEach(function (_, i) { boxes.appendChild(h("span", { class: "g1t-os-box" }, String(i + 1))); });
+    }
+    function litBox(k) { [].forEach.call(boxes.children, function (b, i) { b.classList.toggle("is-now", i === k); }); }
+    function litChip(k) { chips.forEach(function (c, i) { c.classList.toggle("is-now", i === k); }); }
+    function stop() { playing = false; silence(); clearOwned(); litBox(-1); litChip(-1); playBtn.textContent = "▶ Start"; }
+    function toggle() {
+      audio();
+      if (playing) { stop(); status.textContent = "Stopped."; return; }
+      silence(); playing = true; playBtn.textContent = "⏹ Stop";
+      var o = O(), hit = I().p, beat = 60 / bpm, t0 = now() + 0.15, notes = [].concat.apply([], songPhrases(song)), intro = 4;
+      var total = intro + notes.length, cycles = Math.ceil(total / o.pat.length) * o.pat.length;
+      for (var b = 0; b < cycles; b++) {
+        (function (b) {
+          var t = t0 + b * beat, k = b % o.pat.length, p = o.pat[k];
+          if (o.bells) S.mallet(SF[o.bells[k]], t, 0.55);
+          else if (p === "ta") hit(t, 0.9);
+          else if (p === "titi") { hit(t, 0.9); hit(t + beat / 2, 0.75); }
+          at(t, function () { litBox(k); });
+        })(b);
+      }
+      at(t0, function () { status.textContent = "Group B: ostinato… Group A, get ready. 4, 3, 2, 1…"; });
+      notes.forEach(function (n, i) {
+        var t = t0 + (intro + i) * beat;
+        if (tune && n.p) S.mallet(SF[n.p], t, 0.8);
+        at(t, function () { litChip(i); if (i === 0) status.textContent = "Group A: sing! Group B: keep the ostinato going."; });
+      });
+      at(t0 + cycles * beat + 0.2, function () { stop(); status.textContent = "The end! Swap jobs: Group A plays, Group B sings."; playBtn.textContent = "▶ Play again"; });
+    }
+    render();
+    var el = h("div", null, [
+      h("div", { class: "g1t-controls" }, [seg(SITE_SONGS.map(function (s) { return { value: s.id, label: s.n }; }), song.id, function (v) { stop(); song = songById(v); render(); }, "Song")]),
+      h("div", { class: "g1t-controls" }, [
+        seg(OSTI.map(function (o) { return { value: o.id, label: o.n }; }), osti, function (v) { stop(); osti = v; render(); }, "Ostinato"),
+        seg(OST_INST.map(function (o) { return { value: o.id, label: o.n }; }), inst, function (v) { inst = v; }, "Plays on"),
+        seg([{ value: true, label: "🔔 Bells help the singers" }, { value: false, label: "Singers alone" }], tune, function (v) { tune = v; }, "Tune"),
+        speedSeg(bpm, function (v) { bpm = v; })]),
+      h("div", { class: "g1t-os-lanes" }, [
+        h("div", { class: "g1t-os-lane" }, [h("div", { class: "g1t-os-lab" }, "🎤 Group A · song"), laneA]),
+        h("div", { class: "g1t-os-lane is-b" }, [h("div", { class: "g1t-os-lab" }, "🥁 Group B · ostinato (repeat it)"), card, boxes])]),
+      h("div", { class: "g1t-row" }, [playBtn]),
+      status,
+      h("p", { class: "hint" }, "An ostinato is a short pattern that repeats all through a song. Start with ta ta on drums, then try ta sh (freeze on the rest), ti-ti ta, or so–mi on a xylophone or bells.")]);
+    return { el: el, stop: stop, key: function (k) { if (k === " ") { toggle(); return true; } } };
+  }
+
+  /* ---------- Tool: hello, name! (sing-your-name echo on so–mi) ---------- */
+  function syllables(name) {
+    var w = String(name).trim(); if (!w) return [];
+    var parts = w.match(/[^aeiouy]*[aeiouy]+(?:[^aeiouy]+$)?|[^aeiouy]+$/gi) || [w];
+    var out = [];
+    parts.forEach(function (p, i) {
+      if (i && /^[^aeiouy]{2,}/i.test(p)) { var m = p.match(/^([^aeiouy]+)([^aeiouy][aeiouy].*)$/i); if (m) { out[out.length - 1] += m[1]; p = m[2]; } }
+      out.push(p);
+    });
+    while (out.length > 4) { out[out.length - 2] += out.pop(); }
+    return out;
+  }
+  function toolHelloName() {
+    var tune = prm("tune", ["hello", "where"], "hello"), names = ["Teddy", "Bunny", "Froggy", "Kitty", "Puppy", "Ducky"], order = [], idx = -1, done = {}, busy = false;
+    var card = h("div", { class: "g1t-hn-card" }), who = h("div", { class: "g1t-cp-who" }, "🎵");
+    var list = h("div", { class: "g1t-hn-list" });
+    var input = h("textarea", { class: "g1t-hn-input", rows: "2", "aria-label": "First names, separated by commas", placeholder: "Type first names, separated by commas (they stay on this screen only)" });
+    var status = h("p", { class: "g1t-status", "aria-live": "polite" }, "Press ⏭ Next name, then ▶ Sing. The bells sing the greeting; the child (or class) sings it back.");
+    var chips = [];
+    function lines(name) {
+      var sy = syllables(name), pit = sy.map(function (_, i) { return i % 2 ? "mi" : "so"; });
+      if (tune === "hello") return { call: [{ w: "Hel-", p: "so" }, { w: "lo,", p: "mi" }].concat(sy.map(function (s, i) { return { w: s, p: pit[i], b: sy.length === 1 ? 2 : 1 }; })), answer: null };
+      return { call: [{ w: "Where", p: "so" }, { w: "is", p: "mi" }].concat(sy.map(function (s, i) { return { w: s + (i === sy.length - 1 ? "?" : ""), p: pit[i], b: sy.length === 1 ? 2 : 1 }; })), answer: [{ w: "Here", p: "so" }, { w: "I", p: "so" }, { w: "am!", p: "mi", b: 2 }] };
+    }
+    function renderList() {
+      list.innerHTML = "";
+      names.forEach(function (n) { list.appendChild(h("span", { class: "g1t-hn-chip" + (done[n] ? " is-done" : "") + (order[idx] === n ? " is-now" : "") }, (done[n] ? "✓ " : "") + n)); });
+    }
+    function renderCard() {
+      card.innerHTML = ""; chips = [];
+      var n = order[idx];
+      if (!n) { card.appendChild(h("div", { class: "g1t-hn-big" }, "👋")); return; }
+      var L = lines(n);
+      [L.call, L.answer].forEach(function (line, li) {
+        if (!line) return;
+        var row = h("div", { class: "g1t-cp-line" + (li ? " is-answer" : "") }, li ? [h("span", { class: "g1t-hn-tag" }, "🧒")] : [h("span", { class: "g1t-hn-tag" }, "🔔")]);
+        line.forEach(function (x) { var c = noteChip(x, true); chips.push(c); row.appendChild(c); });
+        card.appendChild(row);
+      });
+    }
+    function next() {
+      stop();
+      if (!order.length || idx >= order.length - 1) { order = shuffle(names); idx = -1; done = {}; }
+      idx++; renderCard(); renderList();
+      status.textContent = "Next: " + order[idx] + ". Press ▶ Sing.";
+    }
+    function light(k) { chips.forEach(function (c, i) { c.classList.toggle("is-now", i === k); }); }
+    function stop() { busy = false; silence(); clearOwned(); light(-1); }
+    function sing() {
+      audio();
+      if (busy) { stop(); return; }
+      if (idx < 0) next();
+      silence(); busy = true;
+      var n = order[idx], L = lines(n), beat = 0.6, t = now() + 0.15, k = 0;
+      who.textContent = "🔔 Listen";
+      L.call.forEach(function (x) { S.mallet(SF[x.p], t, 0.8); (function (kk, tt) { at(tt, function () { light(kk); }); })(k++, t); t += beat * (x.b || 1); });
+      t += beat;
+      var reply = L.answer || L.call;
+      at(t - beat, function () { light(-1); who.textContent = L.answer ? "🧒 " + n + " answers" : "🧒 " + n + ", your turn"; status.textContent = L.answer ? n + ": sing “Here I am!”" : n + ": sing it back!"; });
+      var k2 = L.answer ? L.call.length : 0;
+      reply.forEach(function (x) { S.woodblock(t, 0.22, true); (function (kk, tt) { at(tt, function () { light(kk); }); })(k2++, t); t += beat * (x.b || 1); });
+      at(t, function () { busy = false; light(-1); done[n] = true; renderList(); who.textContent = "✨"; status.textContent = "Lovely singing voice, " + n + "! Press ⏭ Next name."; });
+    }
+    function useNames() {
+      var v = input.value.split(/[,\n]/).map(function (s) { return s.trim().replace(/\s+/g, " ").slice(0, 20); }).filter(Boolean);
+      if (!v.length) { status.textContent = "Type some first names first, separated by commas."; return; }
+      stop(); names = v.slice(0, 40); order = []; idx = -1; done = {}; renderCard(); renderList();
+      status.textContent = names.length + " names ready. Press ⏭ Next name.";
+    }
+    renderCard(); renderList();
+    var el = h("div", null, [
+      h("div", { class: "g1t-controls" }, [seg([{ value: "hello", label: "Hello, ___!" }, { value: "where", label: "Where is ___? Here I am!" }], tune, function (v) { tune = v; stop(); renderCard(); }, "Song")]),
+      h("div", { class: "g1t-cp-stage" }, [who, card]),
+      h("div", { class: "g1t-row" }, [btn("▶ Sing", "btn-primary g1t-xl", sing), btn("⏭ Next name", "btn-ghost g1t-xl", next)]),
+      status, list,
+      h("details", { class: "g1t-hn-names" }, [h("summary", null, "Use our class names"), input, h("div", { class: "g1t-row" }, [btn("✓ Use these names", "btn-ghost g1t-lg", useNames)])]),
+      h("p", { class: "hint" }, "Names are only kept on this screen until you close the tool; nothing is saved or sent. Model a light singing voice on so–mi. A shy child can answer with the class, or wave instead.")]);
+    return { el: el, stop: stop, key: function (k) { if (k === " ") { sing(); return true; } if (k === "n" || k === "arrowright") { next(); return true; } } };
+  }
+
+  /* ---------- Tool: melody maze (which path did the tune take?) ---------- */
+  function mazeSvg(p, hl) {
+    var Y = { la: 18, so: 44, mi: 70 }, w = 40 + (p.length - 1) * 60, pts = p.map(function (n, i) { return [20 + i * 60, Y[n]]; });
+    var s = '<svg viewBox="0 0 ' + w + ' 88" class="g1t-mz-svg" role="img" aria-label="' + p.join(" ") + '">';
+    s += '<line x1="4" y1="18" x2="' + (w - 4) + '" y2="18" class="g1t-mz-g"/><line x1="4" y1="44" x2="' + (w - 4) + '" y2="44" class="g1t-mz-g"/><line x1="4" y1="70" x2="' + (w - 4) + '" y2="70" class="g1t-mz-g"/>';
+    s += '<polyline points="' + pts.map(function (q) { return q.join(","); }).join(" ") + '" class="g1t-mz-line"/>';
+    pts.forEach(function (q, i) { s += '<circle cx="' + q[0] + '" cy="' + q[1] + '" r="' + (hl === i ? 13 : 10) + '" fill="' + SOL_C[p[i]] + '" stroke="#2a1f3d" stroke-width="' + (hl === i ? 3 : 1.5) + '"/>'; });
+    return s + "</svg>";
+  }
+  function toolMaze() {
+    var notes = prm("notes", ["sm", "sml"], "sm"), len = prm("len", [3, 4], 3), nch = prm("choices", [2, 3], 3), round = null, stars = 0, tries = 0, busy = false;
+    var status = h("p", { class: "g1t-status", "aria-live": "polite" }, "Press ▶ Play the tune. Which path did the melody walk? Trace it in the air with your finger.");
+    var score = h("p", { class: "g1t-score" }), box = h("div", { class: "g1t-mz-choices" });
+    var playBtn = btn("▶ Play the tune", "btn-primary g1t-xl", function () { play(false); });
+    function randTune() {
+      var pool = notes === "sm" ? ["so", "mi"] : ["so", "mi", "la"], p;
+      do { p = []; for (var i = 0; i < len; i++) p.push(pick(pool)); } while (p.every(function (x) { return x === p[0]; }) || (notes === "sml" && p.indexOf("la") < 0));
+      return p;
+    }
+    function newRound() {
+      var opts = [randTune()], guard = 0;
+      while (opts.length < nch && guard++ < 200) { var c = randTune(); if (!opts.some(function (o) { return o.join() === c.join(); })) opts.push(c); }
+      var answer = opts[0]; opts = shuffle(opts);
+      round = { opts: opts, answer: opts.indexOf(answer), done: false };
+      renderChoices();
+    }
+    function renderChoices(hl, which) {
+      box.innerHTML = "";
+      if (!round) { box.appendChild(h("p", { class: "g1t-mz-empty" }, "The paths appear when you press ▶.")); return; }
+      round.opts.forEach(function (p, i) {
+        var b = h("button", { type: "button", class: "g1t-mz-choice", "aria-label": "Path " + "ABC"[i] + ": " + p.join(" ") }, [h("span", { class: "g1t-mz-letter" }, "ABC"[i])]);
+        b.appendChild(h("span", { class: "g1t-mz-art", html: mazeSvg(p, which === i ? hl : -1) }));
+        b.addEventListener("click", function () { answer(i, b); });
+        box.appendChild(b);
+      });
+    }
+    function playTune(p, light) {
+      audio(); silence(); clearOwned(); busy = true;
+      var t = now() + 0.12, gap = 0.6;
+      p.forEach(function (n, i) { S.mallet(SF[n], t + i * gap, 0.85); if (light != null) at(t + i * gap, function () { renderChoices(i, light); }); });
+      at(t + p.length * gap, function () { busy = false; if (light != null) renderChoices(-1, -1); });
+    }
+    function play(again) {
+      if (!round || (!again && round.done)) newRound();
+      playTune(round.opts[round.answer]);
+      status.textContent = "Which path? Tap A, B" + (nch === 3 ? " or C." : ".");
+      playBtn.textContent = "▶ Play the tune";
+    }
+    function answer(i, b) {
+      if (!round || round.done) { status.textContent = "Press ▶ Play the tune first."; return; }
+      tries++;
+      if (i === round.answer) { stars++; round.done = true; status.textContent = "Yes! Path " + "ABC"[i] + ": " + round.opts[i].join(" – ") + ". Watch it walk…"; success(); later(function () { playTune(round.opts[i], i); }, 700); playBtn.textContent = "▶ Next tune"; }
+      else { status.textContent = "Not that path. Listen again 🔁: does it go up, down, or stay?"; flash(b, "is-wrong", 600); }
+      score.textContent = "⭐ " + stars + " of " + tries;
+    }
+    renderChoices();
+    var el = h("div", null, [
+      h("div", { class: "g1t-controls" }, [
+        seg([{ value: "sm", label: "so · mi" }, { value: "sml", label: "so · mi · la" }], notes, function (v) { notes = v; round = null; renderChoices(); }, "Notes"),
+        seg([{ value: 3, label: "3 notes" }, { value: 4, label: "4 notes" }], len, function (v) { len = v; round = null; renderChoices(); }, "Length"),
+        seg([{ value: 2, label: "2 paths" }, { value: 3, label: "3 paths" }], nch, function (v) { nch = v; round = null; renderChoices(); }, "Choices")]),
+      h("div", { class: "g1t-row" }, [playBtn, btn("🔁 Hear again", "btn-ghost g1t-xl", function () { if (round) play(true); else play(false); })]),
+      status, box, score,
+      h("p", { class: "hint" }, "Top line la, middle so, bottom mi. Sing the winning path with hand signs, then draw it on the board or with a finger on the carpet.")]);
+    return { el: el, stop: function () { silence(); }, key: function (k) { if (k === " ") { play(!!(round && !round.done)); return true; } var i = "abc".indexOf(k); if (i >= 0 && i < nch && round) { answer(i, box.children[i]); return true; } } };
+  }
+
+  /* ---------- Tool: draw the sound (smooth or bumpy, up, down or same) ---------- */
+  function soundLineSvg(kind, dir) {
+    var y0 = dir === "up" ? 70 : dir === "down" ? 18 : 44, y1 = dir === "up" ? 18 : dir === "down" ? 70 : 44, s = '<svg viewBox="0 0 120 88" class="g1t-ds-svg" aria-hidden="true">';
+    if (kind === "smooth") s += '<path d="M10 ' + y0 + ' C 45 ' + y0 + ', 75 ' + y1 + ', 110 ' + y1 + '" fill="none" stroke="#5e35b1" stroke-width="7" stroke-linecap="round"/>';
+    else for (var i = 0; i < 5; i++) { var x = 14 + i * 23, y = y0 + (y1 - y0) * i / 4; s += '<circle cx="' + x + '" cy="' + y + '" r="8" fill="#00897b"/>'; }
+    return s + "</svg>";
+  }
+  function playDrawn(kind, dir, t) {
+    var f0 = dir === "up" ? NOTE.C4 : dir === "down" ? NOTE.C5 : NOTE.G4, f1 = dir === "up" ? NOTE.C5 : dir === "down" ? NOTE.C4 : NOTE.G4, dur = 1.8;
+    if (kind === "smooth") {
+      var g = AC.createGain(), o = AC.createOscillator();
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.3, t + 0.08); g.gain.setValueAtTime(0.3, t + dur - 0.2); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.type = "triangle"; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur - 0.1);
+      o.connect(g); g.connect(bus); o.start(t); o.stop(t + dur + 0.05);
+    } else for (var i = 0; i < 5; i++) S.mallet(f0 * Math.pow(f1 / f0, i / 4), t + i * 0.36, 0.8);
+  }
+  function toolDrawSound() {
+    var ANS = {
+      smooth: [{ id: "smooth", k: "smooth", d: "same", label: "Smooth" }, { id: "bumpy", k: "bumpy", d: "same", label: "Bumpy" }],
+      shape: [{ id: "up", k: "smooth", d: "up", label: "Goes up" }, { id: "down", k: "smooth", d: "down", label: "Goes down" }, { id: "same", k: "smooth", d: "same", label: "Stays the same" }],
+      both: [{ id: "smooth-up", k: "smooth", d: "up", label: "Smooth, up" }, { id: "smooth-down", k: "smooth", d: "down", label: "Smooth, down" }, { id: "bumpy-up", k: "bumpy", d: "up", label: "Bumpy, up" }, { id: "bumpy-down", k: "bumpy", d: "down", label: "Bumpy, down" }]
+    };
+    return listeningGame({
+      intro: "Press ▶ and listen. Then pick the picture that draws the sound.",
+      modes: [{ value: "smooth", label: "Smooth or bumpy?" }, { value: "shape", label: "Up, down or same?" }, { value: "both", label: "Both" }],
+      answers: function (mode) { return ANS[mode].map(function (a) { return { id: a.id, emoji: "", html: soundLineSvg(mode === "shape" ? "bumpy" : a.k, a.d), label: a.label }; }); },
+      ask: function (mode) { return mode === "smooth" ? "Was it smooth like a slide, or bumpy like steps?" : mode === "shape" ? "Did it go up, down, or stay the same?" : "Smooth or bumpy? Up or down?"; },
+      makeRound: function (mode) {
+        var a = pick(ANS[mode]), kind = mode === "shape" ? pick(["smooth", "bumpy"]) : a.k, dir = mode === "smooth" ? pick(["up", "down", "same"]) : a.d;
+        return { answer: a.id, play: function (t) { playDrawn(kind, dir, t); } };
+      },
+      demo: { label: "〰️ Hear smooth, then bumpy", say: function () { return "Smooth slides. Bumpy steps. Draw each one in the air."; }, play: function (t) { playDrawn("smooth", "up", t); playDrawn("bumpy", "up", t + 2.3); } }
+    });
+  }
+
+  /* ---------- Tool: find the rest (which beat was silent?) ---------- */
+  function toolRestSpot() {
+    var titi = PARAMS.titi === "1", nrest = prm("rests", [1, 2], 1), len = prm("len", [4, 8], 4), tick = PARAMS.tick !== "0", bpm = 92, round = null, picked = [], stars = 0, tries = 0;
+    var boxes = h("div", { class: "g1t-rs-boxes" }), reveal = h("div", { class: "g1t-rs-reveal" }), score = h("p", { class: "g1t-score" });
+    var status = h("p", { class: "g1t-status", "aria-live": "polite" }, "Press ▶ Listen. The drum plays " + len + " beats. One beat is silent — which one?");
+    var playBtn = btn("▶ Listen", "btn-primary g1t-xl", function () { play(false); });
+    function makePat() {
+      var rs = shuffle(Array.apply(null, Array(len)).map(function (_, i) { return i; })).slice(0, nrest), p = [];
+      for (var i = 0; i < len; i++) p.push(rs.indexOf(i) >= 0 ? "rest" : titi && Math.random() < 0.35 ? "titi" : "ta");
+      return p;
+    }
+    function render(now_) {
+      boxes.innerHTML = "";
+      for (var i = 0; i < len; i++) {
+        var on = picked.indexOf(i) >= 0, done = round && round.done;
+        var b = h("button", { type: "button", class: "g1t-rs-box" + (i === now_ ? " is-now" : "") + (on ? " is-picked" : "") + (done && round.pat[i] === "rest" ? " is-rest" : ""), "aria-label": "Beat " + (i + 1) + (on ? ", picked" : "") }, [h("span", { class: "g1t-rs-n" }, String(i + 1)), h("span", { class: "g1t-rs-e", "aria-hidden": "true" }, done ? (round.pat[i] === "rest" ? "🤫" : "🥁") : on ? "🤫" : "")]);
+        (function (k, el) { el.addEventListener("click", function () { choose(k, el); }); })(i, b);
+        boxes.appendChild(b);
+      }
+      reveal.innerHTML = round && round.done ? rhythmSvg(round.pat, { words: true }) : "";
+    }
+    function play(again) {
+      audio();
+      if (!round || (!again && round.done)) { round = { pat: makePat(), done: false }; picked = []; }
+      silence(); clearOwned();
+      var beat = 60 / bpm, t0 = now() + 0.15;
+      for (var c = 0; c < 4; c++) S.woodblock(t0 + c * beat, 0.35, true);
+      at(t0, function () { status.textContent = "Ready… 1, 2, 3, 4"; });
+      var t1 = t0 + 4 * beat;
+      round.pat.forEach(function (p, i) {
+        var t = t1 + i * beat;
+        if (tick) S.woodblock(t, 0.12, true);
+        if (p === "ta") S.drum(t, 0.9); else if (p === "titi") { S.drum(t, 0.85); S.drum(t + beat / 2, 0.75); }
+        at(t, function () { render(i); });
+      });
+      at(t1 + len * beat, function () { render(-1); status.textContent = nrest === 2 ? "Tap the TWO silent beats." : "Tap the silent beat."; });
+      playBtn.textContent = "▶ Listen";
+    }
+    function choose(k, el) {
+      if (!round || round.done) { status.textContent = "Press ▶ Listen first."; return; }
+      var at_ = picked.indexOf(k);
+      if (at_ >= 0) { picked.splice(at_, 1); render(-1); return; }
+      picked.push(k); if (picked.length > nrest) picked.shift();
+      render(-1);
+      if (picked.length < nrest) { status.textContent = "One more silent beat to find."; return; }
+      tries++;
+      var ok = picked.every(function (i) { return round.pat[i] === "rest"; });
+      if (ok) { stars++; round.done = true; success(); status.textContent = "Yes! Beat " + picked.map(function (i) { return i + 1; }).sort().join(" and ") + " was a rest: sh! Clap it, and show the rest with open hands."; playBtn.textContent = "▶ Next rhythm"; render(-1); }
+      else { oops(); status.textContent = "Not quite. Listen again 🔁 and count the beats on your fingers."; picked = []; later(function () { render(-1); }, 500); }
+      score.textContent = "⭐ " + stars + " of " + tries;
+    }
+    render(-1);
+    var el = h("div", null, [
+      h("div", { class: "g1t-controls" }, [
+        seg([{ value: 4, label: "4 beats" }, { value: 8, label: "8 beats" }], len, function (v) { len = v; round = null; picked = []; render(-1); }, "Length"),
+        seg([{ value: 1, label: "1 rest" }, { value: 2, label: "2 rests" }], nrest, function (v) { nrest = v; round = null; picked = []; render(-1); }, "Rests"),
+        seg([{ value: false, label: "ta only" }, { value: true, label: "ta + ti-ti" }], titi, function (v) { titi = v; round = null; render(-1); }, "Sounds"),
+        seg([{ value: true, label: "Quiet beat tick" }, { value: false, label: "No tick" }], tick, function (v) { tick = v; }, "Help")]),
+      h("div", { class: "g1t-row" }, [playBtn, btn("🔁 Hear again", "btn-ghost g1t-xl", function () { play(true); })]),
+      status, boxes, reveal, score,
+      h("p", { class: "hint" }, "The boxes light on every beat, even the silent one: the beat keeps going during a rest. Students can pat each beat and freeze with open hands on the rest.")]);
+    return { el: el, stop: function () { silence(); }, key: function (k) { if (k === " ") { play(!!(round && !round.done)); return true; } var n = parseInt(k, 10); if (n >= 1 && n <= len) { choose(n - 1); return true; } } };
+  }
+
+  /* ---------- Tool: count the hops (animal beat counting) ---------- */
+  var HOPPERS = [
+    { id: "frog", e: "🐸", n: "Frog", v: "hops", pt: "hopped", p: function (t) { S.woodblock(t, 0.9); } },
+    { id: "elephant", e: "🐘", n: "Elephant", v: "stomps", pt: "stomped", p: function (t) { S.drum(t, 1, true); } },
+    { id: "bunny", e: "🐇", n: "Bunny", v: "hops", pt: "hopped", p: function (t) { S.sticks(t, 0.9); } },
+    { id: "kangaroo", e: "🦘", n: "Kangaroo", v: "jumps", pt: "jumped", p: function (t) { S.tambourine(t, 0.8); } }
+  ];
+  function toolCountBeats() {
+    var max = prm("max", [4, 6, 8], 6), aid = prm("animal", HOPPERS.map(function (a) { return a.id; }), "frog"), see = PARAMS.see === "1", bpm = 96, round = null, stars = 0, tries = 0;
+    function A() { for (var i = 0; i < HOPPERS.length; i++) if (HOPPERS[i].id === aid) return HOPPERS[i]; }
+    var scene = h("div", { class: "g1t-hop-scene" }), prints = h("div", { class: "g1t-hop-prints", "aria-hidden": "true" }), nums = h("div", { class: "g1t-hop-nums" }), score = h("p", { class: "g1t-score" });
+    var status = h("p", { class: "g1t-status", "aria-live": "polite" }, "Press ▶ Listen. Count the hops on your fingers, then tap the number.");
+    var playBtn = btn("▶ Listen", "btn-primary g1t-xl", function () { play(false); });
+    var critter = h("span", { class: "g1t-hop-e" }), bush = h("span", { class: "g1t-hop-bush", "aria-hidden": "true" }, "🌳");
+    scene.appendChild(critter); scene.appendChild(bush);
+    function renderScene() { var a = A(); critter.textContent = a.e; bush.hidden = see; scene.classList.toggle("is-hidden", !see); }
+    function renderNums() {
+      nums.innerHTML = "";
+      for (var i = 1; i <= max; i++) (function (n) { var b = h("button", { type: "button", class: "g1t-hop-n" }, String(n)); b.addEventListener("click", function () { answer(n, b); }); nums.appendChild(b); })(i);
+    }
+    function play(again) {
+      audio();
+      if (!round || (!again && round.done)) round = { n: 1 + Math.floor(Math.random() * max), done: false };
+      silence(); clearOwned(); prints.innerHTML = "";
+      var a = A(), beat = 60 / bpm, t0 = now() + 0.2;
+      for (var i = 0; i < round.n; i++) (function (i) { var t = t0 + i * beat; a.p(t); at(t, function () { flash(critter, "is-hop", 300); if (see) prints.appendChild(h("span", null, "🐾")); }); })(i);
+      at(t0 + round.n * beat, function () { status.textContent = "How many " + a.v + "? Show your fingers, then tap the number."; });
+      status.textContent = "Shh… count!"; playBtn.textContent = "▶ Listen";
+    }
+    function answer(n, b) {
+      if (!round || round.done) { status.textContent = "Press ▶ Listen first."; return; }
+      tries++;
+      var a = A();
+      if (n === round.n) { stars++; round.done = true; success(); flash(b, "is-right", 900); prints.innerHTML = ""; for (var i = 0; i < n; i++) prints.appendChild(h("span", null, "🐾")); status.textContent = "Yes! The " + a.n.toLowerCase() + " " + a.pt + " " + n + " times on the beat."; playBtn.textContent = "▶ Next animal"; }
+      else { flash(b, "is-wrong", 600); status.textContent = n < round.n ? "More than that! Listen again 🔁." : "Fewer than that! Listen again 🔁."; }
+      score.textContent = "⭐ " + stars + " of " + tries;
+    }
+    renderScene(); renderNums();
+    var el = h("div", null, [
+      h("div", { class: "g1t-controls" }, [
+        seg(HOPPERS.map(function (a) { return { value: a.id, label: a.e + " " + a.n }; }), aid, function (v) { aid = v; renderScene(); }, "Animal"),
+        seg([{ value: 4, label: "Up to 4" }, { value: 6, label: "Up to 6" }, { value: 8, label: "Up to 8" }], max, function (v) { max = v; round = null; renderNums(); }, "Count"),
+        seg([{ value: false, label: "🌳 Hiding (ears only)" }, { value: true, label: "👀 Watch it" }], see, function (v) { see = v; renderScene(); }, "Help"),
+        speedSeg(bpm, function (v) { bpm = v; })]),
+      h("div", { class: "g1t-row" }, [playBtn, btn("🔁 Hear again", "btn-ghost g1t-xl", function () { play(true); })]),
+      scene, prints, status, nums, score,
+      h("p", { class: "hint" }, "Every hop lands on a steady beat. Count with fingers, pat each hop on your knees, or hop it quietly in place. Then chant the number: “Frog hopped five!”")]);
+    return { el: el, stop: function () { silence(); }, key: function (k) { if (k === " ") { play(!!(round && !round.done)); return true; } var n = parseInt(k, 10); if (n >= 1 && n <= max) { answer(n, nums.children[n - 1]); return true; } } };
+  }
+
+  /* ---------- Tool: sound memory (find the pairs by ear) ---------- */
+  var MEM_INST = [
+    { id: "drum", e: "🥁", n: "Drum", c: "#c62828", p: function (t) { S.drum(t); S.drum(t + 0.35, 0.8); } },
+    { id: "shaker", e: "🥚", n: "Egg shaker", c: "#f59e0b", p: function (t) { S.shaker(t); S.shaker(t + 0.3); S.shaker(t + 0.6); } },
+    { id: "triangle", e: "🔺", n: "Triangle", c: "#0284c7", p: function (t) { S.triangle(t, 0.9); } },
+    { id: "woodblock", e: "🪵", n: "Woodblock", c: "#8d6e63", p: function (t) { S.woodblock(t); S.woodblock(t + 0.3, 1, true); } },
+    { id: "tambourine", e: "", svg: true, n: "Tambourine", c: "#5e35b1", p: function (t) { S.tambourine(t); S.tambourine(t + 0.35, 0.7); } },
+    { id: "xylophone", e: "", xylo: true, n: "Xylophone", c: "#00897b", p: function (t) { [NOTE.C5, NOTE.E5, NOTE.G5].forEach(function (f, i) { S.mallet(f, t + i * 0.18, 0.7); }); } },
+    { id: "sticks", e: "🥢", n: "Rhythm sticks", c: "#6d4c41", p: function (t) { S.sticks(t); S.sticks(t + 0.25); } },
+    { id: "bell", e: "🔔", n: "Hand bell", c: "#d81b60", p: function (t) { S.handbell(t); } }
+  ];
+  function memIcon(m) { return m.svg ? h("span", { class: "g1t-mem-e", "aria-hidden": "true", html: tambourineSvg() }) : m.xylo ? h("span", { class: "g1t-mem-e", "aria-hidden": "true", html: miniXyloSvg() }) : h("span", { class: "g1t-mem-e", "aria-hidden": "true" }, m.e); }
+  function toolMemory() {
+    var pairs = prm("pairs", [3, 4, 6], 4), pics = PARAMS.pics === "1", teams = PARAMS.teams === "1", deck = [], open_ = [], lock = false, found = 0, turns = 0, team = 0, pts = [0, 0];
+    var grid = h("div", { class: "g1t-mem" }), status = h("p", { class: "g1t-status", "aria-live": "polite" }), tbar = h("p", { class: "g1t-score" });
+    function deal() {
+      clearOwned(); silence();
+      var pick_ = shuffle(MEM_INST).slice(0, pairs);
+      deck = shuffle(pick_.concat(pick_)).map(function (m, i) { return { m: m, i: i, up: false, got: false }; });
+      open_ = []; lock = false; found = 0; turns = 0; team = 0; pts = [0, 0];
+      render(); say(teams ? "Team 🔴 starts. Tap two cards and listen: do they sound the same?" : "Tap two cards and listen. Find the cards that sound the same.");
+    }
+    function say(s) { status.textContent = s; tbar.textContent = teams ? "🔴 " + pts[0] + "   🔵 " + pts[1] + "   · Turn: " + (team ? "🔵" : "🔴") : "Pairs found: " + found + " of " + pairs + " · Turns: " + turns; }
+    function render() {
+      grid.innerHTML = "";
+      grid.className = "g1t-mem is-" + deck.length;
+      deck.forEach(function (c) {
+        var show = c.got || (c.up && pics);
+        var b = h("button", { type: "button", class: "g1t-mem-card" + (c.up ? " is-up" : "") + (c.got ? " is-got" : ""), style: show ? "--mc:" + c.m.c : null, "aria-label": "Card " + (c.i + 1) + (c.got ? ": " + c.m.n : c.up ? ": playing" : "") },
+          show ? [memIcon(c.m), h("span", { class: "g1t-mem-n" }, c.m.n)] : c.up ? [h("span", { class: "g1t-mem-e", "aria-hidden": "true" }, "🔊")] : [h("span", { class: "g1t-mem-q", "aria-hidden": "true" }, "?"), h("span", { class: "g1t-mem-k" }, String(c.i + 1))]);
+        b.addEventListener("click", function () { flip(c); });
+        grid.appendChild(b);
+      });
+    }
+    function flip(c) {
+      audio();
+      if (lock || c.got || c.up) { if (c.got || c.up) { silence(); c.m.p(now() + 0.02); } return; }
+      silence(); c.up = true; open_.push(c); c.m.p(now() + 0.02); render();
+      if (open_.length < 2) { say("Listen… now find its partner."); return; }
+      turns++; lock = true;
+      var a = open_[0], b = open_[1];
+      if (a.m.id === b.m.id) {
+        later(function () {
+          a.got = b.got = true; open_ = []; lock = false; found++; if (teams) pts[team]++;
+          success(); render();
+          if (found === pairs) say("All pairs found! 🎉 " + (teams ? (pts[0] === pts[1] ? "A tie!" : (pts[0] > pts[1] ? "Team 🔴" : "Team 🔵") + " found more.") : "In " + turns + " turns.") + " Press 🔀 New game.");
+          else say("A pair: " + a.m.n + "! " + (teams ? "Same team goes again." : "Keep going."));
+        }, 1100);
+      } else {
+        later(function () { a.up = b.up = false; open_ = []; lock = false; if (teams) team = 1 - team; render(); say("Not the same sound. " + (teams ? "Team " + (team ? "🔵" : "🔴") + "'s turn." : "Try again.")); }, 1600);
+      }
+    }
+    deal();
+    var el = h("div", null, [
+      h("div", { class: "g1t-controls" }, [
+        seg([{ value: 3, label: "3 pairs" }, { value: 4, label: "4 pairs" }, { value: 6, label: "6 pairs" }], pairs, function (v) { pairs = v; deal(); }, "Cards"),
+        seg([{ value: false, label: "👂 Sounds only" }, { value: true, label: "🖼️ Show pictures" }], pics, function (v) { pics = v; render(); }, "Help"),
+        seg([{ value: false, label: "Whole class" }, { value: true, label: "🔴 vs 🔵 teams" }], teams, function (v) { teams = v; deal(); }, "Play")]),
+      grid, status, tbar,
+      h("div", { class: "g1t-row" }, [btn("🔀 New game", "btn-ghost g1t-lg", deal)]),
+      h("p", { class: "hint" }, "Name each instrument when a pair is found, and say how you play it (shake, tap, strike, ring). Pass the real instrument around after its pair is found.")]);
+    return { el: el, stop: function () { silence(); } };
+  }
+
+  /* ---------- Tool: song shapes (same and different phrases: AB form) ---------- */
+  var FORMS = { 3: ["AAB", "ABA", "ABB"], 4: ["AABB", "ABAB", "AABA", "ABBA", "ABAA"] };
+  function toolForm() {
+    var len = prm("len", [3, 4], 4), sound = prm("sound", ["bells", "drum"], "bells"), round = null, stars = 0, tries = 0;
+    var slots = h("div", { class: "g1t-fm-slots" }), opts = h("div", { class: "g1t-fm-opts" }), score = h("p", { class: "g1t-score" });
+    var status = h("p", { class: "g1t-status", "aria-live": "polite" }, "Press ▶ Listen. You will hear " + len + " little parts. Which parts are the same?");
+    var playBtn = btn("▶ Listen", "btn-primary g1t-xl", function () { play(false); });
+    function shape(L, big) { return h("span", { class: "g1t-fm-shape is-" + L + (big ? " big" : ""), "aria-label": L === "A" ? "circle" : "square" }, L); }
+    function phrase() {
+      if (sound === "drum") return randPattern(4, true);
+      var p; do { p = []; for (var i = 0; i < 4; i++) p.push(pick(["so", "mi", "la"])); } while (p.every(function (x) { return x === p[0]; }));
+      return p;
+    }
+    function newRound() {
+      var A = phrase(), B; do { B = phrase(); } while (B.join() === A.join());
+      var form = pick(FORMS[len]), others = shuffle(FORMS[len].filter(function (f) { return f !== form; })).slice(0, 2);
+      round = { A: A, B: B, form: form, choices: shuffle([form].concat(others)), done: false };
+    }
+    function renderSlots(now_) {
+      slots.innerHTML = "";
+      for (var i = 0; i < len; i++) {
+        var L = round && round.done ? round.form[i] : null;
+        slots.appendChild(h("div", { class: "g1t-fm-slot" + (i === now_ ? " is-now" : "") }, [h("small", null, "Part " + (i + 1)), L ? shape(L, true) : h("span", { class: "g1t-fm-q" }, "?")]));
+      }
+    }
+    function renderOpts() {
+      opts.innerHTML = "";
+      if (!round) return;
+      round.choices.forEach(function (f) {
+        var b = h("button", { type: "button", class: "g1t-fm-opt", "aria-label": f.split("").map(function (L) { return L === "A" ? "circle" : "square"; }).join(", ") }, f.split("").map(function (L) { return shape(L); }));
+        b.addEventListener("click", function () { answer(f, b); });
+        opts.appendChild(b);
+      });
+    }
+    function playPart(p, t) {
+      var gap = sound === "drum" ? 0.42 : 0.4;
+      if (sound === "drum") p.forEach(function (x, i) { if (x === "ta") S.drum(t + i * gap, 0.9); if (x === "titi") { S.drum(t + i * gap, 0.85); S.drum(t + i * gap + gap / 2, 0.75); } });
+      else p.forEach(function (n, i) { S.mallet(SF[n], t + i * gap, 0.8); });
+      return 4 * gap;
+    }
+    function play(again) {
+      audio();
+      if (!round || (!again && round.done)) newRound();
+      silence(); clearOwned();
+      var t = now() + 0.15;
+      for (var i = 0; i < len; i++) (function (i) { at(t, function () { renderSlots(i); }); t += playPart(round.form[i] === "A" ? round.A : round.B, t) + 0.55; })(i);
+      at(t, function () { renderSlots(-1); status.textContent = "Which shapes match what you heard? Same sound = same shape."; });
+      renderOpts(); playBtn.textContent = "▶ Listen";
+    }
+    function answer(f, b) {
+      if (!round || round.done) { status.textContent = "Press ▶ Listen first."; return; }
+      tries++;
+      if (f === round.form) { stars++; round.done = true; success(); flash(b, "is-right", 900); renderSlots(-1); status.textContent = "Yes! " + f.split("").join(" ") + ". The circles sound the same; the squares sound the same."; playBtn.textContent = "▶ Next song shape"; }
+      else { flash(b, "is-wrong", 600); status.textContent = "Not quite. Listen again 🔁: is part 2 the same as part 1?"; }
+      score.textContent = "⭐ " + stars + " of " + tries;
+    }
+    renderSlots(-1);
+    var el = h("div", null, [
+      h("div", { class: "g1t-controls" }, [
+        seg([{ value: 3, label: "3 parts" }, { value: 4, label: "4 parts" }], len, function (v) { len = v; round = null; renderSlots(-1); renderOpts(); }, "Parts"),
+        seg([{ value: "bells", label: "🔔 Tunes" }, { value: "drum", label: "🥁 Rhythms" }], sound, function (v) { sound = v; round = null; renderSlots(-1); renderOpts(); }, "Sound")]),
+      h("div", { class: "g1t-row" }, [playBtn, btn("🔁 Hear again", "btn-ghost g1t-xl", function () { play(true); }),
+        btn("🔴 Hear A", "btn-ghost g1t-lg", function () { if (!round) return; audio(); silence(); playPart(round.A, now() + 0.1); }),
+        btn("🟦 Hear B", "btn-ghost g1t-lg", function () { if (!round) return; audio(); silence(); playPart(round.B, now() + 0.1); })]),
+      slots, status, opts, score,
+      h("p", { class: "hint" }, "Same part, same shape. Show it with the body too: pat for circles, clap for squares. Then find the same and different parts in Rain, Rain or Lucy Locket.")]);
+    return { el: el, stop: function () { silence(); } };
+  }
+
+  /* ---------- Tool: concert program (plan and run a class sharing) ---------- */
+  var PIECES = SITE_SONGS.map(function (s) { return { id: s.id, n: s.n, kind: "sing" }; }).concat([
+    { id: "pease", n: "Pease Porridge Hot", kind: "chant" },
+    { id: "walkstop", n: "Walk and Stop", kind: "chant" },
+    { id: "ocanada", n: "O Canada (first phrase)", kind: "sing" },
+    { id: "ostinato", n: "Song with an ostinato", kind: "play" },
+    { id: "weather", n: "Weather sound story", kind: "play" },
+    { id: "bodyperc", n: "Body percussion piece", kind: "play" },
+    { id: "patterns", n: "Our four-beat patterns", kind: "play" }
+  ]);
+  function pieceById(id) { for (var i = 0; i < PIECES.length; i++) if (PIECES[i].id === id) return PIECES[i]; }
+  function toolProgram() {
+    var prog = String(PARAMS.pieces || "").split(",").map(pieceById).filter(Boolean).slice(0, 4), MAX = 4, steps = [], si = -1;
+    if (!prog.length) prog = [pieceById("rain"), pieceById("bounce"), pieceById("pease")];
+    var chooser = h("div", { class: "g1t-pg-pieces" }), list = h("ol", { class: "g1t-pg-list" }), stage = h("div", { class: "g1t-pg-stage", hidden: true });
+    var status = h("p", { class: "g1t-status", "aria-live": "polite" }, "Tap pieces to add them (up to 4). Use ↑ to change the order. Then ▶ Run the concert.");
+    var planBox = h("div");
+    var ICON = { sing: "🎤", chant: "🗣️", play: "🥁" };
+    function renderChooser() {
+      chooser.innerHTML = "";
+      PIECES.forEach(function (p) {
+        var inProg = prog.indexOf(p) >= 0;
+        var b = h("button", { type: "button", class: "g1t-pg-piece" + (inProg ? " is-in" : ""), "aria-pressed": inProg ? "true" : "false" }, [h("span", { "aria-hidden": "true" }, ICON[p.kind]), " " + p.n]);
+        b.addEventListener("click", function () { var k = prog.indexOf(p); if (k >= 0) prog.splice(k, 1); else if (prog.length < MAX) prog.push(p); else { status.textContent = "The program is full (4 pieces). Take one out first."; return; } renderAll(); });
+        chooser.appendChild(b);
+      });
+    }
+    function renderList() {
+      list.innerHTML = "";
+      if (!prog.length) list.appendChild(h("li", { class: "g1t-pg-empty" }, "No pieces yet."));
+      prog.forEach(function (p, i) {
+        list.appendChild(h("li", { class: "g1t-pg-item" }, [h("span", { class: "g1t-pg-num" }, String(i + 1)), h("span", { class: "g1t-pg-name" }, [ICON[p.kind] + " ", p.n]),
+          i ? btn("↑", "btn-ghost g1t-pg-mini", function () { prog.splice(i - 1, 0, prog.splice(i, 1)[0]); renderAll(); }, { "aria-label": "Move " + p.n + " up" }) : null,
+          btn("✕", "btn-ghost g1t-pg-mini", function () { prog.splice(i, 1); renderAll(); }, { "aria-label": "Remove " + p.n })]));
+      });
+    }
+    function renderAll() { renderChooser(); renderList(); status.textContent = prog.length + " of 4 pieces. " + (prog.length ? "Press ▶ Run the concert when you are ready." : "Tap pieces to add them."); }
+    function buildSteps() {
+      steps = [{ e: "🚶", t: "Walk on quietly", s: "Find your spot. Hands still, eyes on the conductor." }, { e: "🙇", t: "Bow together", s: "Wait for the audience to be ready." }];
+      prog.forEach(function (p, i) {
+        steps.push({ e: ICON[p.kind], t: (i + 1) + ". " + p.n, s: p.kind === "play" ? "Players: instruments in rest position, then ready… play!" : p.kind === "chant" ? "Speakers: one voice together, on the beat." : "Singers: stand tall, light singing voice. Listen for the starting note.", pitch: p.kind === "sing" });
+      });
+      steps.push({ e: "🙇", t: "Bow together", s: "Wait for the clapping to finish." }, { e: "👋", t: "Walk off quietly", s: "Thank you, audience!" });
+    }
+    function renderStep() {
+      var st = steps[si];
+      stage.innerHTML = "";
+      stage.appendChild(h("div", { class: "g1t-pg-step" }, [h("div", { class: "g1t-pg-e", "aria-hidden": "true" }, st.e), h("div", { class: "g1t-pg-t" }, st.t), h("div", { class: "g1t-pg-s" }, st.s), h("div", { class: "g1t-pg-count" }, "Step " + (si + 1) + " of " + steps.length)]));
+      var row = h("div", { class: "g1t-row" }, [btn("⏮ Back", "btn-ghost g1t-xl", function () { if (si > 0) { si--; renderStep(); } }), btn(si === steps.length - 1 ? "✓ Finish" : "Next ⏭", "btn-primary g1t-xl", function () { if (si < steps.length - 1) { si++; renderStep(); } else endRun(); })]);
+      if (st.pitch) row.appendChild(btn("🎵 Starting note (so)", "btn-ghost g1t-xl", function () { audio(); silence(); S.chime(SF.so, now() + 0.02, 0.7); }));
+      stage.appendChild(row);
+      status.textContent = st.t;
+    }
+    function run() { if (!prog.length) { status.textContent = "Add at least one piece first."; return; } buildSteps(); si = 0; planBox.hidden = true; stage.hidden = false; renderStep(); }
+    function endRun() { stage.hidden = true; planBox.hidden = false; si = -1; status.textContent = "The concert is over. 👏 Change the program or run it again."; }
+    planBox.appendChild(h("h3", { class: "g1t-sub" }, "Our program"));
+    planBox.appendChild(list);
+    planBox.appendChild(h("div", { class: "g1t-row" }, [btn("▶ Run the concert", "btn-primary g1t-xl", run), btn("🖨️ Print the program", "btn-ghost g1t-lg", function () { printProgram(); })]));
+    planBox.appendChild(h("h3", { class: "g1t-sub" }, "Pieces we know"));
+    planBox.appendChild(chooser);
+    function printProgram() {
+      var w = window.open("", "_blank"); if (!w) { status.textContent = "Allow pop-ups to print the program."; return; }
+      var html = "<!doctype html><meta charset='utf-8'><title>Our class concert</title><style>body{font-family:Georgia,serif;text-align:center;padding:40px}h1{font-size:40px}li{font-size:26px;margin:14px 0;list-style:none}</style><h1>🎵 Our Class Concert 🎵</h1><ol>" +
+        prog.map(function (p, i) { return "<li>" + (i + 1) + ". " + p.n.replace(/</g, "&lt;") + "</li>"; }).join("") + "</ol><p>Thank you for listening!</p>";
+      w.document.write(html); w.document.close(); w.focus(); w.print();
+    }
+    renderAll();
+    var el = h("div", null, [planBox, stage, status, h("p", { class: "hint" }, "Plan two songs and one played piece together, then rehearse in order. Press Next as each step happens; the starting note only plays when you tap it.")]);
+    return { el: el, stop: function () { silence(); }, key: function (k) { if (si < 0) return; if (k === "arrowright" || k === " ") { if (si < steps.length - 1) { si++; renderStep(); } else endRun(); return true; } if (k === "arrowleft") { if (si > 0) { si--; renderStep(); } return true; } } };
   }
 
   /* ---------- Picker and stage ---------- */
@@ -2957,6 +3626,8 @@
     { g: "beat", id: "drumecho", e: "🪘", name: "Drum echo", blurb: "My turn, your turn: copy the drum rhythm", make: toolDrumEcho },
     { g: "beat", id: "dictation", e: "👂", name: "Rhythm detective", blurb: "Hear a rhythm, find the matching card", make: toolDictation },
     { g: "beat", id: "rpuzzle", e: "🧩", name: "Rhythm puzzle", blurb: "Hear a rhythm, then drag the cards to build it", make: toolRPuzzle },
+    { g: "beat", id: "restspot", e: "🤫", name: "Find the rest", blurb: "Which beat was silent? The beat keeps going through the rest", make: toolRestSpot },
+    { g: "beat", id: "countbeats", e: "🐸", name: "Count the hops", blurb: "Frog, elephant, bunny: count the hops on the beat", make: toolCountBeats },
     { g: "listen", id: "echo", e: "🦜", name: "So–mi–la echo", blurb: "Listen to a pattern, then play it back", make: toolEcho },
     { g: "listen", id: "flash", e: "", ic: handSvg("so", "g1t-hs g1t-hs-icon"), name: "Hand-sign cards", blurb: "Curwen hand signs (do to high do) and how high to hold each one", make: toolFlash },
     { g: "listen", id: "guess", e: "❓", name: "Guess the instrument", blurb: "Mystery sounds: which instrument is it?", make: toolGuess },
@@ -2972,11 +3643,18 @@
     { g: "listen", id: "pitch", e: "🎵", name: "Pitch pipe", blurb: "Starting notes and so–mi to sing from", make: toolPitch },
     { g: "listen", id: "singalong", e: "🎤", name: "Singalong", blurb: "Rain Rain, Bounce High, Hot Cross Buns, Twinkle with bouncing words", make: toolSingalong },
     { g: "listen", id: "stairs", e: "🪜", name: "Solfège staircase", blurb: "Climb do to high do, and guess where the voice stopped", make: toolStairs },
+    { g: "listen", id: "copycat", e: "🐱", name: "Copycat songs", blurb: "Echo favourite songs phrase by phrase, then build them up", make: toolCopycat },
+    { g: "listen", id: "hellonames", e: "👋", name: "Hello, name!", blurb: "Sing each child’s name on so–mi; they sing it back", make: toolHelloName },
+    { g: "listen", id: "maze", e: "〰️", name: "Melody maze", blurb: "Hear a so–mi–la tune and pick the path it walked", make: toolMaze },
+    { g: "listen", id: "drawsound", e: "✏️", name: "Draw the sound", blurb: "Smooth or bumpy? Up, down or the same? Pick the picture", make: toolDrawSound },
+    { g: "listen", id: "form", e: "🔷", name: "Song shapes", blurb: "Same part, same shape: hear AB patterns like A A B A", make: toolForm },
+    { g: "listen", id: "memory", e: "🃏", name: "Sound memory", blurb: "Flip cards and find the pairs that sound the same", make: toolMemory },
     { g: "create", id: "rhythm", e: "🔢", name: "Rhythm maker", blurb: "Build 8 beats of ta, ti-ti and rest, see the notes", make: toolRhythm },
     { g: "create", id: "names", e: "📛", name: "Name rhythms", blurb: "Turn names and words into ta and ti-ti", make: toolNames },
     { g: "create", id: "compose", e: "🎼", name: "Melody maker", blurb: "Write so, mi and la on a 3-line staff", make: toolCompose },
     { g: "create", id: "loops", e: "🔁", name: "Loop builder", blurb: "Layer drum, clap, shaker and bells into an ostinato", make: toolLoops },
     { g: "create", id: "weather", e: "⛅", name: "Weather sound story", blurb: "Line up sun, wind, rain, thunder, snow and rainbow into a story", make: toolWeather },
+    { g: "create", id: "ostinato", e: "🧱", name: "Song + ostinato", blurb: "One group sings, one group repeats a pattern on instruments", make: toolOstinato },
     { g: "class", id: "timer", e: "⏱️", name: "Music timer", blurb: "Countdown with calm music and a chime", make: toolTimer },
     { g: "class", id: "freeze", e: "🧊", name: "Freeze dance", blurb: "Music stops at surprise moments", make: toolFreeze },
     { g: "class", id: "opposites", e: "🎡", name: "Musical opposites", blurb: "Spin: high or low, loud or soft, fast or slow, long or short", make: toolOpposites },
@@ -2985,10 +3663,11 @@
     { g: "class", id: "meter", e: "🎤", name: "Volume meter", blurb: "Is the room too loud? Uses the mic only when you tap", make: toolMeter },
     { g: "class", id: "sort", e: "🎻", name: "Instrument sorter", blurb: "Blow, hit or shake, pluck or bow", make: toolSort },
     { g: "class", id: "hunt", e: "🔍", name: "Sound scavenger hunt", blurb: "Find classroom sounds that tap, shake, crinkle, ring…", make: toolHunt },
-    { g: "class", id: "concert", e: "👏", name: "Concert manners", blurb: "Listen quietly, wait through pauses, clap after the bow", make: toolConcert }
+    { g: "class", id: "concert", e: "👏", name: "Concert manners", blurb: "Listen quietly, wait through pauses, clap after the bow", make: toolConcert },
+    { g: "class", id: "program", e: "🎟️", name: "Concert program", blurb: "Plan the pieces, then run the sharing step by step", make: toolProgram }
   ];
 
-  var CSS = ".g1t{--g1t-gap:14px;min-width:0;max-width:100%}\n.g1t [hidden]{display:none!important}\n.g1t-picker{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:var(--g1t-gap);margin:8px 0}\n.g1t-card{font:inherit;text-align:left;cursor:pointer;background:var(--color-paper);border:1px solid var(--color-line);border-radius:var(--radius-lg);box-shadow:var(--shadow-paper);padding:16px;min-height:128px;display:flex;flex-direction:column;gap:6px;color:inherit;transition:transform .12s,border-color .12s}\n.g1t-card:hover,.g1t-card:focus-visible{border-color:var(--color-primary);transform:translateY(-2px)}\n.g1t-card:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px}\n.g1t-card-e{font-size:40px;line-height:1}\n.g1t-card-n{font-weight:700;font-size:16.5px}\n.g1t-card-b{color:var(--color-muted);font-size:13.5px;line-height:1.35}\n.g1t-card.is-classic{background:var(--color-surface);border-style:dashed}\n.g1t-sub{font-family:var(--font-display);font-size:20px;margin:22px 0 8px}\n.g1t-stage{background:var(--color-paper);border:1px solid var(--color-line);border-radius:var(--radius-xl);box-shadow:var(--shadow-paper);padding:16px 18px 20px;margin:8px 0 24px;scroll-margin-top:84px}\n.g1t-stagebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}\n.g1t-stagebar h2{margin:0;flex:1;font-size:26px;display:flex;align-items:center;gap:10px;outline:none}\n.g1t-stage.is-big{position:fixed;inset:0;z-index:80;margin:0;border-radius:0;overflow:auto;padding:20px clamp(16px,4vw,48px);background:var(--color-bg)}\n.g1t-btn{cursor:pointer;touch-action:manipulation}\n.g1t-lg{min-height:52px;font-size:16px;padding:12px 18px}\n.g1t-xl{min-height:60px;font-size:18px;padding:14px 24px}\n.g1t-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:14px 0}\n.g1t-controls{display:flex;flex-wrap:wrap;gap:10px 18px;margin:10px 0}\n.g1t-seg{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px}\n.g1t-seg-label{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-subtle);margin-right:4px}\n.g1t-seg button{font:inherit;cursor:pointer;min-height:44px;padding:8px 14px;border-radius:999px;border:1px solid var(--color-line);background:#fff;color:var(--color-fg);font-weight:650;font-size:14.5px;touch-action:manipulation}\n.g1t-seg button[aria-pressed=true]{background:var(--color-primary);border-color:var(--color-primary);color:var(--color-primary-fg)}\n.g1t-status{font-size:clamp(18px,2.4vw,24px);font-weight:650;margin:12px 0;min-height:1.4em}\n.g1t-score{font-size:18px;font-weight:700;color:var(--color-primary);margin:8px 0}\n.g1t-emo{font-size:1.25em}\n.g1t-answers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}\n.g1t-answer{font:inherit;cursor:pointer;min-height:140px;border-radius:var(--radius-xl);border:2px solid var(--color-line);background:#fff;color:var(--color-fg);font-size:clamp(20px,3vw,28px);font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;touch-action:manipulation}\n.g1t-answer-e{font-size:clamp(48px,7vw,72px);line-height:1}\n.g1t-answer:hover{border-color:var(--color-primary)}\n.g1t .is-right{animation:g1t-pop .5s ease;border-color:#2f7d6b!important;background:#d7efe6!important}\n.g1t .is-wrong{animation:g1t-shake .45s ease;border-color:#c62828!important}\n@keyframes g1t-pop{0%{transform:scale(1)}40%{transform:scale(1.06)}100%{transform:scale(1)}}\n@keyframes g1t-shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}\n.g1t-beat-top{display:flex;flex-direction:column;align-items:center;gap:14px;margin:8px 0}\n.g1t-pulse{width:clamp(150px,30vw,240px);aspect-ratio:1;border-radius:50%;background:var(--color-primary-soft);border:6px solid var(--color-primary);display:grid;place-items:center;position:relative;transition:transform .18s ease,background .18s}\n.g1t-pulse.is-on{transform:scale(1.12);background:#d7efe6;transition:none}\n.g1t-pulse.accent.is-on{background:#f6e9c0;border-color:#c4a035}\n.g1t-pulse-e{font-size:clamp(56px,11vw,96px);line-height:1}\n.g1t-pulse-n{position:absolute;bottom:12%;font-weight:800;font-size:22px;color:var(--color-primary)}\n.g1t-dots{display:flex;gap:12px}\n.g1t-dot{width:22px;height:22px;border-radius:50%;background:var(--color-line)}\n.g1t-dot.is-on{background:var(--color-primary)}\n.g1t-dot:first-child.is-on{background:#c4a035}\n.g1t-readout{text-align:center;font-size:clamp(18px,2.4vw,24px);font-weight:700;margin:6px 0}\n.g1t-tempo{display:flex;align-items:center;gap:10px;flex-wrap:wrap}\n.g1t-range{flex:1;min-width:160px;height:44px;accent-color:var(--color-primary)}\n.g1t-xylo{display:flex;align-items:center;gap:clamp(4px,1vw,10px);height:clamp(240px,40vw,340px);padding:10px 0}\n.g1t-bar{font:inherit;cursor:pointer;flex:1 1 0;min-width:0;height:var(--h);background:var(--bar);border:0;border-radius:12px;box-shadow:inset 0 -6px 0 rgba(0,0,0,.18),0 2px 6px rgba(0,0,0,.15);display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:10px 2px;font-weight:800;touch-action:manipulation;transition:transform .1s;user-select:none;-webkit-user-select:none}\n.g1t-bar.is-on{transform:translateY(4px) scale(.97);filter:brightness(1.2)}\n.g1t-bar.is-off{opacity:.25;cursor:not-allowed}\n.g1t-bar-peg{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.7);box-shadow:0 0 0 2px rgba(0,0,0,.2)}\n.g1t-bar-main{font-size:clamp(18px,3vw,28px)}\n.g1t-bar-sub{font-size:13px;opacity:.85;font-weight:650}\n.g1t-bar-key{font-size:11px;opacity:.6;font-weight:600}\n.g1t-hand{display:flex;flex-direction:column;align-items:center;gap:2px;line-height:1.1}\n.g1t-hand-e{font-size:28px;display:inline-block}\n.g1t-hand-w{font-size:11px;font-weight:650;text-align:center;max-width:7em}\n.g1t-hand.big .g1t-hand-e{font-size:36px}\n.g1t-pads{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}\n.g1t-pad{font:inherit;cursor:pointer;min-height:clamp(120px,16vw,170px);border-radius:var(--radius-xl);border:0;background:var(--pad);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;box-shadow:inset 0 -6px 0 rgba(0,0,0,.2),0 2px 8px rgba(0,0,0,.12);position:relative;touch-action:manipulation;user-select:none;-webkit-user-select:none;transition:transform .08s}\n.g1t-pad.is-on{transform:scale(.95);filter:brightness(1.25)}\n.g1t-pad-e{font-size:clamp(44px,6vw,64px);line-height:1;filter:drop-shadow(0 2px 2px rgba(0,0,0,.2))}\n.g1t-pad-n{font-weight:750;font-size:16px;text-shadow:0 1px 2px rgba(0,0,0,.3)}\n.g1t-pad-k{position:absolute;top:8px;right:12px;font-size:12px;opacity:.75}\n.g1t-echo{display:grid;gap:10px;max-width:560px}\n.g1t-echo-bar{font:inherit;cursor:pointer;min-height:84px;border:0;border-radius:var(--radius-xl);background:var(--bar);display:flex;align-items:center;gap:16px;padding:8px 20px;box-shadow:inset 0 -6px 0 rgba(0,0,0,.18);touch-action:manipulation;transition:transform .1s;user-select:none;-webkit-user-select:none}\n.g1t-echo-la{width:88%}\n.g1t-echo-so{width:94%}\n.g1t-echo-mi{width:100%;margin-top:24px}\n.g1t-echo-bar.is-on{transform:scale(1.03);filter:brightness(1.25);box-shadow:0 0 0 5px rgba(92,61,138,.35)}\n.g1t-echo-name{font-size:30px;font-weight:800;flex:1;text-align:left}\n.g1t-echo-hl{font-size:13px;font-weight:700;opacity:.85;text-transform:uppercase;letter-spacing:.06em}\n.g1t-progress{display:flex;gap:8px;margin:6px 0 14px;min-height:44px}\n.g1t-pdot{min-width:52px;height:44px;border-radius:12px;border:2px dashed var(--color-line);display:grid;place-items:center;font-weight:700;color:var(--color-subtle)}\n.g1t-pdot.is-on{border-style:solid;border-color:var(--color-primary);color:var(--color-primary);background:var(--color-primary-soft)}\n.g1t-staff-wrap{overflow-x:auto;background:#fff;border:1px solid var(--color-line);border-radius:var(--radius-lg);padding:6px}\n.g1t-staff{display:block;width:100%;height:auto}\n.g1t-zone{cursor:pointer}\n.g1t-zone:hover{fill:rgba(92,61,138,.08)}\n.g1t-cells{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:6px;margin-top:10px}\n.g1t-cell{font:inherit;cursor:pointer;min-height:60px;border-radius:12px;border:1px solid var(--color-line);background:var(--color-surface);font-weight:750;font-size:17px;color:var(--color-fg);display:flex;flex-direction:column;align-items:center;justify-content:center;touch-action:manipulation}\n.g1t-cell small{font-size:11px;color:var(--color-subtle);font-weight:600}\n.g1t-cell.filled{background:var(--color-primary-soft);color:var(--color-primary)}\n.g1t-cell.now{outline:3px solid var(--color-primary)}\n.g1t-pipe{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:10px}\n.g1t-pipe-note{font:inherit;cursor:pointer;aspect-ratio:1;min-height:64px;border-radius:50%;border:0;background:var(--bar);font-size:clamp(20px,3vw,30px);font-weight:800;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:inset 0 -5px 0 rgba(0,0,0,.18);touch-action:manipulation;transition:transform .12s}\n.g1t-pipe-note small{font-size:12px;font-weight:650}\n.g1t-pipe-note.is-on{box-shadow:0 0 0 6px rgba(92,61,138,.35);transform:scale(1.06)}\n.g1t-badge{font-size:14px;padding:8px 12px}\n.g1t-timer{display:flex;flex-direction:column;align-items:center}\n.g1t-timer .g1t-row,.g1t-timer .g1t-controls{justify-content:center}\n.g1t-ring{position:relative;width:clamp(220px,40vw,340px);aspect-ratio:1}\n.g1t-ring svg{width:100%;height:100%;display:block}\n.g1t-ring-bar{transition:stroke-dashoffset .2s linear}\n.g1t-time{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--font-display);font-weight:700;font-size:clamp(52px,10vw,92px);font-variant-numeric:tabular-nums}\n.g1t-ring.is-done .g1t-time{color:#c62828;animation:g1t-pop .6s ease 3}\n.g1t-freeze{border-radius:var(--radius-xl);min-height:clamp(220px,36vw,340px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:var(--color-surface);border:2px solid var(--color-line);text-align:center;padding:16px}\n.g1t-freeze-e{font-size:clamp(64px,12vw,120px);line-height:1}\n.g1t-freeze-t{font-family:var(--font-display);font-weight:700;font-size:clamp(28px,6vw,64px)}\n.g1t-freeze.is-dance{background:#d7efe6;border-color:#2f7d6b}\n.g1t-freeze.is-dance .g1t-freeze-e{animation:g1t-bounce .5s ease-in-out infinite alternate}\n.g1t-freeze.is-freeze{background:#dbeafe;border-color:#3b82f6}\n@keyframes g1t-bounce{from{transform:translateY(0) rotate(-6deg)}to{transform:translateY(-14px) rotate(6deg)}}\n.g1t-tray{display:flex;flex-wrap:wrap;align-items:center;gap:10px;min-height:96px;margin:8px 0 16px}\n.g1t-item{font:inherit;cursor:pointer;min-width:110px;min-height:96px;border-radius:var(--radius-lg);border:2px solid var(--color-line);background:#fff;color:var(--color-fg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-weight:700;touch-action:manipulation}\n.g1t-item[aria-pressed=true]{border-color:var(--color-primary);box-shadow:0 0 0 4px rgba(92,61,138,.25);background:var(--color-primary-soft)}\n.g1t-item-e{font-size:44px;line-height:1}\n.g1t-bins{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}\n.g1t-bin{font:inherit;cursor:pointer;min-height:170px;border-radius:var(--radius-xl);border:3px dashed var(--color-hover-line);background:var(--color-surface);color:var(--color-fg);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:6px;padding:14px 8px;touch-action:manipulation}\n.g1t-bin-e{font-size:44px;line-height:1}\n.g1t-bin-n{font-weight:800;font-size:19px}\n.g1t-bin-got{font-size:34px;letter-spacing:4px;min-height:1.2em}\n@media (max-width:640px){\n.g1t-picker{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}\n.g1t-card{min-height:118px;padding:12px}\n.g1t-card-e{font-size:34px}\n.g1t-stage{padding:12px 12px 16px}\n.g1t-pads{grid-template-columns:repeat(2,minmax(0,1fr))}\n.g1t-cells{grid-template-columns:repeat(4,minmax(0,1fr))}\n.g1t-pipe{grid-template-columns:repeat(4,minmax(0,1fr))}\n.g1t-bins{grid-template-columns:1fr}\n.g1t-bin{min-height:96px;flex-direction:row;flex-wrap:wrap;justify-content:center;align-items:center}\n.g1t-answer{min-height:120px}\n.g1t-xylo{gap:3px;height:260px}\n.g1t-bar{border-radius:8px}\n.g1t-bar-sub,.g1t-bar-key,.g1t-hand-w{display:none}\n.g1t-hand-e{font-size:22px}\n.g1t-stagebar h2{font-size:21px;flex-basis:100%;order:-1}\n.g1t-xl{min-height:56px;font-size:17px;padding:12px 18px}\n.g1t-echo-name{font-size:26px}\n}\n@media (prefers-reduced-motion:reduce){.g1t-freeze.is-dance .g1t-freeze-e,.g1t .is-right,.g1t .is-wrong,.g1t-ring.is-done .g1t-time{animation:none}}\n@media print{.g1t{display:none!important}}\n.g1t-card.is-wide{grid-column:span 2;flex-direction:row;align-items:center;gap:16px;background:linear-gradient(135deg,var(--color-paper),var(--color-primary-soft));border-color:var(--color-hover-line)}\n.g1t-card.is-wide .g1t-card-e{font-size:56px}\n.g1t-card.is-wide .g1t-card-n{font-size:19px;display:block}\n.g1t-piano-scroll{overflow-x:auto;width:0;min-width:100%;-webkit-overflow-scrolling:touch;padding:4px 0 10px}\n.g1t-piano{--wk:calc(100% / var(--n));--bkw:calc(var(--wk) * .62);position:relative;display:flex;min-width:620px;height:clamp(200px,28vw,280px);user-select:none;-webkit-user-select:none}\n.g1t-wk{font:inherit;cursor:pointer;flex:1 1 0;min-width:0;height:100%;background:#fff;border:1px solid #bfb3cf;border-radius:0 0 10px 10px;margin:0 1px;display:flex;align-items:flex-end;justify-content:center;padding:0 0 10px;color:var(--color-fg);box-shadow:inset 0 -6px 0 #eee6f5;touch-action:manipulation}\n.g1t-wk.is-mark{background:linear-gradient(to top,var(--mk) 0 34%,#fff 34%)}\n.g1t-wk.is-on{background:var(--color-primary-soft);box-shadow:inset 0 -2px 0 #ddd0e8;transform:translateY(2px)}\n.g1t-wk.is-mark.is-on{filter:brightness(1.1)}\n.g1t-wk-lab{display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1.1}\n.g1t-wk-lab b{font-size:clamp(14px,1.8vw,20px);font-weight:800}\n.g1t-wk-lab span{font-size:12px;font-weight:650;opacity:.8}\n.g1t-wk-lab small{font-size:9.5px;font-weight:700;opacity:.75;white-space:nowrap}\n.g1t-wk.is-mark .g1t-wk-lab{background:rgba(255,255,255,.88);border-radius:8px;padding:3px 4px}\n.g1t-bk{font:inherit;cursor:pointer;position:absolute;top:0;width:var(--bkw);height:60%;background:#2a1f3d;border:0;border-radius:0 0 7px 7px;z-index:2;box-shadow:inset 0 -5px 0 #120c1c;touch-action:manipulation}\n.g1t-bk.is-on{background:#5c3d8a}\n@media (max-width:640px){.g1t-card.is-wide{grid-column:span 2}.g1t-card.is-wide .g1t-card-e{font-size:44px}.g1t-piano{min-width:720px;height:220px}}\n.g1t-card-t{display:flex;flex-direction:column;gap:4px}\n.g1t-groups>.g1t-sub:first-child{margin-top:4px}\n.g1t-rhythm-view{background:#fff;border:1px solid var(--color-line);border-radius:var(--radius-lg);padding:8px;overflow-x:auto}\n.g1t-rsvg{display:block;width:100%;height:auto;max-height:150px}\n.g1t-choices{display:grid;gap:12px;grid-template-columns:repeat(3,minmax(0,1fr))}\n.g1t-choice{font:inherit;cursor:pointer;background:#fff;border:2px solid var(--color-line);border-radius:var(--radius-xl);padding:14px 10px;touch-action:manipulation;min-height:110px}\n.g1t-choice:hover{border-color:var(--color-primary)}\n.g1t-choice .g1t-rsvg{max-height:110px}\n.g1t-dots-big{justify-content:center;margin:6px 0 10px}\n.g1t-dots-big .g1t-dot{width:30px;height:30px}\n.g1t-echo-rows{display:flex;align-items:center;gap:12px;max-width:420px;min-height:70px}\n.g1t-echo-rows .g1t-rsvg{max-height:70px}\n.g1t-echo-lab{font-weight:700;white-space:nowrap;color:var(--color-muted)}\n.g1t-bigdrum{font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;width:min(100%,380px);aspect-ratio:1.5;margin:8px auto;border-radius:50% / 40%;border:6px solid #8d5524;background:radial-gradient(circle at 50% 40%,#fff7e6,#f2d7a6);box-shadow:0 10px 0 #8d5524,0 14px 22px rgba(0,0,0,.15);touch-action:manipulation;user-select:none;-webkit-user-select:none;transition:transform .06s}\n.g1t-bigdrum span{font-size:clamp(56px,10vw,90px);line-height:1}\n.g1t-bigdrum b{font-size:18px;color:#6b4318}\n.g1t-bigdrum.is-on{transform:translateY(6px);box-shadow:0 4px 0 #8d5524}\n.g1t-flash{--fc:var(--color-primary);margin:10px auto;max-width:460px;min-height:clamp(260px,40vw,360px);border-radius:28px;background:#fff;border:10px solid var(--fc);box-shadow:var(--shadow-paper);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center}\n.g1t-flash.is-new{animation:g1t-pop .35s ease}\n.g1t-flash-e{font-size:clamp(90px,16vw,150px);line-height:1.1;display:inline-block}\n.g1t-flash-w{font-size:16px;color:var(--color-muted);font-weight:650}\n.g1t-flash-n{font-family:var(--font-display);font-size:clamp(48px,9vw,80px);font-weight:700;line-height:1}\n.g1t-flash-n.is-hidden{color:var(--color-subtle)}\n.g1t-guess{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}\n.g1t-sfx .g1t-pad{min-height:clamp(110px,14vw,150px)}\n.g1t-loop{display:grid;gap:6px;overflow-x:auto;padding-bottom:4px}\n.g1t-loop-row{display:grid;grid-template-columns:minmax(120px,1.4fr) repeat(8,minmax(38px,1fr));gap:6px;align-items:stretch}\n.g1t-loop-lab{font:inherit;cursor:pointer;display:flex;align-items:center;gap:8px;border:1px solid var(--color-line);background:#fff;border-radius:12px;padding:6px 10px;font-weight:700;font-size:14.5px;color:var(--color-fg);text-align:left}\n.g1t-loop-lab span:first-child{font-size:22px}\n.g1t-loop-cell{font:inherit;cursor:pointer;min-height:52px;border-radius:10px;border:1px solid var(--color-line);background:var(--color-surface);touch-action:manipulation}\n.g1t-loop-cell.is-first{border-left:3px solid var(--color-hover-line)}\n.g1t-loop-cell[aria-pressed=true]{background:var(--color-primary);border-color:var(--color-primary)}\n.g1t-loop-cell.is-now{box-shadow:0 0 0 3px #c4a035 inset}\n.g1t-loop-cell[aria-pressed=true].is-now{background:#c4a035;border-color:#c4a035}\n.g1t-meterbox{display:flex;flex-direction:column;align-items:stretch}\n.g1t-meter-face{font-size:clamp(80px,14vw,130px);text-align:center;line-height:1.1}\n.g1t-meter{position:relative;height:56px;border-radius:999px;background:var(--color-surface);border:2px solid var(--color-line);overflow:hidden}\n.g1t-meter-fill{height:100%;width:0;background:#2f7d6b;transition:width .08s linear}\n.g1t-meter-fill.is-quiet{background:#3b82f6}\n.g1t-meter-fill.is-loud{background:#c62828}\n.g1t-meter-line{position:absolute;top:0;bottom:0;width:4px;margin-left:-2px;background:#2a1f3d}\n.g1t-meterbox .g1t-status{text-align:center}\n.g1t-meterbox .g1t-row{justify-content:center}\n.g1t-names{width:100%;max-width:420px;font:inherit;font-size:16px;padding:10px 12px;border-radius:12px;border:1px solid var(--color-line);background:#fff}\n.g1t-pick{margin:12px 0;min-height:clamp(140px,22vw,220px);display:grid;place-items:center;text-align:center;font-family:var(--font-display);font-weight:700;font-size:clamp(48px,10vw,110px);background:#fff;border:2px dashed var(--color-line);border-radius:var(--radius-xl);padding:10px;word-break:break-word}\n.g1t-pick.is-done{border-style:solid;border-color:#c4a035;background:#f6e9c0;animation:g1t-pop .5s ease}\n.g1t-leaders{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}\n.g1t-leader{font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 6px;border-radius:var(--radius-lg);border:2px solid var(--color-line);background:#fff;color:var(--color-fg);font-weight:700;touch-action:manipulation}\n.g1t-leader span:first-child{font-size:44px;line-height:1.1}\n.g1t-leader small{color:var(--color-muted);font-weight:600}\n.g1t-leader[aria-pressed=true]{border-color:var(--color-primary);background:var(--color-primary-soft)}\n.g1t-lane{margin:14px 0 6px;overflow:hidden;border-radius:var(--radius-xl);background:linear-gradient(#d7efe6 0 70%,#b9dfc9 70%);border:2px solid #9fd0b6;height:clamp(110px,16vw,150px);display:flex;align-items:center}\n.g1t-lane-track{display:flex;will-change:transform}\n.g1t-marcher{flex:0 0 auto;width:clamp(64px,9vw,96px);text-align:center;font-size:clamp(48px,7vw,72px);line-height:1;display:inline-block;transform:scaleX(-1)}\n.g1t-marcher.is-hop{animation:g1t-hop .25s ease-out}\n@keyframes g1t-hop{0%{transform:scaleX(-1) translateY(0)}40%{transform:scaleX(-1) translateY(-18px)}100%{transform:scaleX(-1) translateY(0)}}\n.g1t-parade-count{text-align:center;font-family:var(--font-display);font-weight:700;font-size:44px;min-height:52px;color:var(--color-primary)}\n@media (max-width:640px){.g1t-choices{grid-template-columns:1fr}.g1t-leaders{grid-template-columns:repeat(2,minmax(0,1fr))}.g1t-loop-row{grid-template-columns:44px repeat(8,minmax(28px,1fr));gap:4px}.g1t-loop-name{display:none}.g1t-loop-lab{justify-content:center;padding:4px}.g1t-loop-cell{min-height:46px}.g1t-guess{grid-template-columns:repeat(2,minmax(0,1fr))}}\n@media (prefers-reduced-motion:reduce){.g1t-marcher.is-hop,.g1t-flash.is-new,.g1t-pick.is-done{animation:none}}\n.g1t-stage,.g1t-body{min-width:0;max-width:100%}\n.g1t-loop,.g1t-rhythm-view{width:0;min-width:100%;box-sizing:border-box}\n.g1t-lane{width:0;min-width:100%;box-sizing:border-box}\n.g1t-hs{display:block;width:100%;height:auto}\n.g1t-hand-e{display:block;width:58px}\nimg.g1t-hs{border-radius:50%;-webkit-user-select:none;user-select:none;-webkit-user-drag:none}\n.g1t-hand.big .g1t-hand-e{width:84px}\n.g1t-card-e .g1t-hs-icon{width:1.5em;height:auto;display:inline-block;vertical-align:middle}\n.g1t-title-ic .g1t-hs-icon{width:1.6em;display:inline-block;vertical-align:middle}\n.g1t-flash-art{display:flex;align-items:center;justify-content:center;gap:10px;width:100%}\n.g1t-flash-e{width:min(62%,260px);font-size:inherit;line-height:1}\n.g1t-flash-h{width:clamp(44px,8vw,64px)}\n.g1t-hs-height{display:block;width:100%;height:auto}\n.g1t-flash-w{max-width:34ch;text-align:center;padding:0 12px;line-height:1.35}\n.g1t-hs-ladder{display:flex;align-items:flex-end;justify-content:safe center;gap:8px;margin:10px 0;padding:10px;background:#fff;border:1px solid var(--color-line);border-radius:var(--radius-xl);overflow-x:auto;width:0;min-width:100%;box-sizing:border-box}\n.g1t-hs-step{font:inherit;cursor:pointer;flex:0 0 auto;width:clamp(70px,8.6vw,104px);margin-bottom:calc(var(--lv) * clamp(10px,2vw,22px));display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px;background:#fff;border:3px solid var(--fc);border-radius:16px;color:var(--color-fg)}\n.g1t-hs-step b{font-family:var(--font-display);font-size:22px;line-height:1}\n.g1t-hs-step small{font-size:11px;color:var(--color-muted);font-weight:650;text-align:center}\n.g1t-hs-stepart{display:block;width:100%}\n.g1t-countbox{text-align:center;margin:4px 0 8px}\n.g1t-count-lab{font-weight:750;font-size:18px;color:var(--color-muted)}\n.g1t-count4{display:flex;justify-content:center;gap:clamp(10px,3vw,22px);margin-top:4px}\n.g1t-count4 span{width:clamp(56px,10vw,84px);height:clamp(56px,10vw,84px);border-radius:50%;display:grid;place-items:center;font-family:var(--font-display);font-weight:700;font-size:clamp(32px,6vw,52px);background:var(--color-surface);border:3px solid var(--color-line);color:var(--color-subtle);transition:transform .08s}\n.g1t-count4 span.is-past{color:var(--color-muted)}\n.g1t-count4 span.is-on{background:#c4a035;border-color:#8a6d1a;color:#fff;transform:scale(1.12)}\n@media (max-width:640px){.g1t-hand-e{width:44px}.g1t-hand.big .g1t-hand-e{width:62px}.g1t-hs-step{width:72px}}\n/* ---- batch 3 ---- */\n.g1t-br-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:10px 0}\n.g1t-br-box{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 6px;border-radius:var(--radius-lg);border:2px solid var(--color-line);background:#fff;text-align:center;transition:transform .08s}\n.g1t-br-box.is-now{border-color:#c62828;background:#fdecea;transform:scale(1.04)}\n.g1t-br-box.is-rest .g1t-br-w{color:var(--color-subtle)}\n.g1t-br-heart{font-size:clamp(26px,4vw,40px);line-height:1}\n.g1t-br-box:not(.is-now) .g1t-br-heart{filter:grayscale(.55);opacity:.7}\n.g1t-br-w{font-weight:750;font-size:clamp(16px,2.2vw,22px);min-height:1.3em}\n.g1t-br-r{font-size:13px;color:var(--color-muted);font-weight:650}\n.g1t-br-pads{grid-template-columns:repeat(2,minmax(0,1fr));margin-top:12px}\n.g1t-nm-input{flex:1 1 220px}\n.g1t-nm-view{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin:12px 0;padding:10px;background:#fff;border:1px solid var(--color-line);border-radius:var(--radius-xl);min-height:120px}\n.g1t-nm-word{display:flex;flex-direction:column;align-items:center;padding:6px;border-radius:14px;border:2px solid transparent}\n.g1t-nm-word .g1t-rsvg{width:auto;height:84px;max-height:none}\n.g1t-nm-word.is-now{border-color:#c4a035;background:#f6e9c0}\n.g1t-nm-name{font-weight:800;font-size:20px}\n.g1t-nm-list{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}\n.g1t-nm-chip{display:flex;align-items:center;gap:4px;padding:4px 6px 4px 12px;border-radius:999px;border:1px solid var(--color-line);background:var(--color-surface)}\n.g1t-nm-chip .btn{min-height:34px;padding:4px 10px}\n.g1t-nm-chipname{font-weight:750}\n.g1t-nm-n{font-size:14px;font-weight:700;min-width:3em;text-align:center}\n.g1t-body-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}\n.g1t-body-card{font:inherit;cursor:pointer;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:clamp(130px,17vw,190px);border-radius:var(--radius-xl);border:4px solid var(--bc);background:#fff;color:var(--color-fg);transition:transform .08s}\n.g1t-body-card.is-now{background:var(--bc);color:#fff;transform:scale(1.05)}\n.g1t-body-card small{position:absolute;top:6px;left:10px;font-weight:700;opacity:.6}\n.g1t-body-e{font-size:clamp(48px,7vw,76px);line-height:1}\n.g1t-body-n{font-weight:800;font-size:clamp(18px,2.4vw,24px)}\n.g1t-ball-box{position:relative;height:clamp(220px,32vw,340px);border-radius:var(--radius-xl);background:linear-gradient(#eef6ff,#fff);border:2px solid var(--color-line);overflow:hidden}\n.g1t-ball-floor{position:absolute;left:0;right:0;bottom:0;height:44px;display:flex;background:#e8dff5}\n.g1t-ball-spot{flex:1;display:grid;place-items:center;font-weight:800;color:var(--color-muted);border-left:1px dashed #cbbde0}\n.g1t-ball-spot:first-child{border-left:0}\n.g1t-ball-spot.is-on{background:#c4a035;color:#fff}\n.g1t-ball{position:absolute;left:0;top:0;width:clamp(44px,6vw,64px);height:clamp(44px,6vw,64px);border-radius:50%;box-shadow:0 6px 10px rgba(0,0,0,.18);will-change:transform}\n.g1t-opp{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:center}\n.g1t-wheel-wrap{position:relative;max-width:360px;margin:0 auto;width:100%}\n.g1t-wheel-arrow{position:absolute;top:-6px;left:50%;transform:translateX(-50%);font-size:32px;color:#2a1f3d;z-index:2;line-height:1}\n.g1t-wheel{width:100%;aspect-ratio:1;margin-top:18px}\n.g1t-wheel-svg{width:100%;height:100%;display:block}\n.g1t-opp-card{--oc:var(--color-primary);min-height:240px;border-radius:26px;border:8px solid var(--oc);background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:14px;gap:6px}\n.g1t-opp-card.is-new{animation:g1t-pop .4s ease}\n.g1t-opp-e{font-size:clamp(70px,11vw,110px);line-height:1}\n.g1t-opp-n{font-family:var(--font-display);font-weight:700;font-size:clamp(34px,5vw,52px);color:var(--oc);line-height:1.05}\n.g1t-opp-m{font-size:17px;font-weight:600;max-width:26ch}\n.g1t-bw-chart{display:flex;flex-wrap:wrap;gap:8px 6px;padding:12px;background:#fff;border:1px solid var(--color-line);border-radius:var(--radius-xl);max-height:260px;overflow-y:auto;margin:10px 0;position:relative}\n.g1t-bw-note{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:40px}\n.g1t-bw-dot{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px;border:2px solid rgba(0,0,0,.15);transition:transform .08s}\n.g1t-bw-dot.is-dark{color:#2a1f3d}\n.g1t-bw-note.is-long .g1t-bw-dot{width:50px;height:50px}\n.g1t-bw-note.is-short .g1t-bw-dot{width:28px;height:28px;font-size:12px}\n.g1t-bw-note.is-past{opacity:.45}\n.g1t-bw-note.is-now .g1t-bw-dot{transform:scale(1.35);box-shadow:0 0 0 4px #2a1f3d}\n.g1t-bw-w{font-size:12px;color:var(--color-muted);font-weight:650}\n.g1t-bw-tubes{display:flex;align-items:flex-end;justify-content:center;gap:clamp(4px,1vw,10px);height:clamp(150px,20vw,210px);margin:10px 0}\n.g1t-bw-tube{font:inherit;cursor:pointer;flex:0 1 64px;height:var(--th);border-radius:14px;border:0;background:linear-gradient(90deg,rgba(255,255,255,.35),transparent 40%,rgba(0,0,0,.12)),var(--tc);display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;touch-action:manipulation;transition:transform .08s}\n.g1t-bw-tube.is-on{transform:scale(.95)}\n.g1t-bw-tube.is-lit{box-shadow:0 0 0 4px #2a1f3d,0 0 18px var(--tc);transform:translateY(-6px)}\n.g1t-bw-l{color:#fff;font-weight:800;font-size:18px}\n.g1t-bw-l.is-dark{color:#2a1f3d}\n.g1t-bingo-card{background:#fff;border:3px solid #2a1f3d;border-radius:18px;padding:12px;max-width:560px;margin:8px auto}\n.g1t-bingo-head{text-align:center;font-weight:800;letter-spacing:.05em;margin-bottom:8px}\n.g1t-bingo-grid{display:grid;grid-template-columns:repeat(var(--s),minmax(0,1fr));gap:8px}\n.g1t-bingo-cell{border:2px solid var(--color-line);border-radius:10px;padding:4px;display:grid;place-items:center;min-height:56px}\n.g1t-bingo-cell.is-free{font-weight:800;background:#f6e9c0}\n.g1t-bingo-now{min-height:90px;display:grid;place-items:center}\n.g1t-bingo-hidden{font-size:28px;font-weight:800;color:var(--color-subtle);text-align:center;padding:14px}\n.g1t-bingo-called{display:flex;flex-wrap:wrap;gap:6px}\n.g1t-bingo-mini{width:120px;background:#fff;border:1px solid var(--color-line);border-radius:8px;padding:2px}\n.g1t-cr{background:#fff;border:1px solid var(--color-line);border-radius:var(--radius-xl);padding:14px;display:flex;flex-direction:column;gap:14px}\n.g1t-cr.is-new{animation:g1t-pop .35s ease}\n.g1t-cr-kind{font-weight:750;color:var(--color-muted)}\n.g1t-cr-line{display:grid;grid-template-columns:110px 1fr;gap:10px;align-items:center}\n.g1t-cr-who{display:flex;flex-direction:column;align-items:center;font-weight:800;font-size:15px}\n.g1t-cr-who span{font-size:40px;line-height:1.1}\n.g1t-cr-words{display:flex;flex-wrap:wrap;gap:8px}\n.g1t-cr-syl{--sc:#e8dff5;display:flex;flex-direction:column;align-items:center;min-width:64px;padding:8px 10px;border-radius:14px;background:var(--sc);color:#fff}\n.g1t-cr-mi{color:#2a1f3d}\n.g1t-cr-syl b{font-size:clamp(20px,3vw,30px);line-height:1.1}\n.g1t-cr-syl small{font-size:12px;font-weight:700;opacity:.85}\n.g1t-cr-syl.is-quick{min-width:48px}\n.g1t-cr-so{transform:translateY(-10px)}\n.g1t-cr-la{transform:translateY(-18px)}\n.g1t-cr-words{padding-top:18px}\n.g1t-cond-stage{display:flex;align-items:center;justify-content:center;gap:18px;margin:6px 0 12px}\n.g1t-cond-baton{font-size:clamp(50px,8vw,80px);transition:transform .12s}\n.g1t-cond-baton.is-beat{transform:rotate(-25deg) translateY(-6px)}\n.g1t-cond-sign{--dc:#546e7a;flex:1;max-width:560px;min-height:clamp(200px,26vw,280px);border-radius:28px;background:var(--dc);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:14px;transition:background .2s}\n.g1t-cond-e{font-size:clamp(56px,9vw,90px);line-height:1.1}\n.g1t-cond-w{font-family:var(--font-display);font-weight:800;font-size:clamp(38px,6vw,64px);line-height:1}\n.g1t-cond-s{font-size:17px;font-weight:650;opacity:.95;margin-top:4px}\n.g1t-cond-sym{font-family:Georgia,serif;font-weight:800;font-size:1.3em}\n.g1t-cond-main{min-width:220px;font-size:22px}\n.g1t-siren{background:#fff;border:1px solid var(--color-line);border-radius:var(--radius-xl);padding:6px;margin:8px 0}\n.g1t-siren-svg{display:block;width:100%;height:auto;max-height:380px}\n.g1t-siren.is-draw .g1t-siren-svg{touch-action:none;cursor:crosshair;background:repeating-linear-gradient(0deg,transparent 0 39px,#f1ecf8 39px 40px)}\n.g1t-orch{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}\n.g1t-orch-tile{--oc:#555;font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:12px 6px;border-radius:var(--radius-xl);border:3px dashed var(--color-line);background:#fff;color:var(--color-muted);transition:transform .08s}\n.g1t-orch-tile[aria-pressed=true]{border:3px solid var(--oc);color:var(--color-fg);background:#fff}\n.g1t-orch-tile[aria-pressed=false] .g1t-orch-e{filter:grayscale(1);opacity:.5}\n.g1t-orch-tile.is-hit{background:var(--oc);color:#fff;transform:scale(1.05)}\n.g1t-orch-e{font-size:clamp(40px,6vw,60px);line-height:1.1}\n.g1t-orch-n{font-weight:800}\n.g1t-orch-st{font-size:12px;font-weight:650}\n.g1t-voice-ladder{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:end}\n.g1t-voice-step{--vc:#555;font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;border-radius:14px;border:3px solid var(--vc);background:#fff;color:var(--color-fg);font-weight:750}\n.g1t-voice-step:nth-child(1){min-height:70px}.g1t-voice-step:nth-child(2){min-height:84px}.g1t-voice-step:nth-child(3){min-height:98px}.g1t-voice-step:nth-child(4){min-height:112px}\n.g1t-voice-step span:first-child{font-size:30px}\n.g1t-voice-step[aria-pressed=true]{background:var(--vc);color:#fff}\n.g1t-voice-card{--vc:var(--color-primary);margin:12px auto;max-width:560px;min-height:260px;border-radius:28px;border:10px solid var(--vc);background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:14px;gap:6px}\n.g1t-voice-card.is-new{animation:g1t-pop .35s ease}\n.g1t-voice-e{font-size:clamp(70px,12vw,120px);line-height:1}\n.g1t-voice-n{font-family:var(--font-display);font-weight:700;font-size:clamp(30px,5vw,48px);color:var(--vc)}\n.g1t-voice-p{font-size:clamp(20px,3vw,28px);font-weight:750}\n.g1t-voice-tip{font-size:15px;color:var(--color-muted);max-width:34ch}\n@media (max-width:640px){.g1t-br-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.g1t-body-cards,.g1t-orch{grid-template-columns:repeat(2,minmax(0,1fr))}.g1t-opp{grid-template-columns:1fr}.g1t-cr-line{grid-template-columns:1fr}.g1t-cr-who{flex-direction:row;gap:6px}.g1t-cr-who span{font-size:28px}.g1t-bw-dot{width:32px;height:32px}.g1t-bw-note.is-long .g1t-bw-dot{width:42px;height:42px}.g1t-cond-stage{flex-direction:column}.g1t-voice-step span:first-child{font-size:24px}.g1t-voice-step{font-size:13px}.g1t-bingo-cell{min-height:40px}}\n@media (prefers-reduced-motion:reduce){.g1t-opp-card.is-new,.g1t-cr.is-new,.g1t-voice-card.is-new{animation:none}.g1t-cond-baton{transition:none}}\n.g1t-hs-view{font-size:12px;font-weight:750;letter-spacing:.04em;text-transform:uppercase;color:var(--color-subtle)}\n.g1t-hs-ladder{position:relative;padding-top:30px}\n.g1t-hs-ladder-lab{position:absolute;top:8px;left:12px}\n/* ---- batch 4 ---- */\n.g1t-sing{display:flex;flex-direction:column;gap:14px;margin:12px 0;padding:18px 14px;background:#fff;border:1px solid var(--color-line);border-radius:var(--radius-xl)}\n.g1t-sing-line{display:flex;flex-wrap:wrap;gap:6px 4px;align-items:flex-end}\n.g1t-sing-w{position:relative;display:inline-flex;flex-direction:column;align-items:center;min-width:calc(var(--dur) * 3.2em);padding:26px 6px 6px;border-radius:12px;font-size:clamp(20px,3vw,32px);font-weight:750;color:var(--color-fg);transition:background .15s,color .15s}\n.g1t-sing-w::before{content:\"\";position:absolute;top:2px;left:50%;width:18px;height:18px;margin-left:-9px;border-radius:50%;background:#c4a035;opacity:0;transform:translateY(-6px)}\n.g1t-sing-w.is-now{background:var(--color-primary-soft);color:var(--color-primary)}\n.g1t-sing-w.is-now::before{opacity:1;animation:g1t-bounce .3s ease-out}\n.g1t-sing-w.is-done{color:var(--color-subtle)}\n.g1t-sing-s{font-size:13px;font-weight:650;color:var(--color-muted);letter-spacing:.03em}\n@keyframes g1t-bounce{0%{transform:translateY(-14px)}60%{transform:translateY(2px)}100%{transform:translateY(0)}}\n.g1t-fb-tap{margin:8px auto}\n.g1t-fb-gauge{position:relative;height:34px;max-width:420px;margin:10px auto;border-radius:999px;background:linear-gradient(90deg,#f6e9c0,#d7efe6 40% 60%,#f6e9c0)}\n.g1t-fb-mid{position:absolute;left:50%;top:4px;bottom:4px;width:3px;margin-left:-1px;background:#2f7d6b;border-radius:2px}\n.g1t-fb-dot{position:absolute;left:50%;top:50%;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;background:var(--color-primary);transition:left .15s}\n.g1t-fb-l,.g1t-fb-r{position:absolute;top:50%;transform:translateY(-50%);font-size:12px;font-weight:700;color:var(--color-muted)}\n.g1t-fb-l{left:10px}.g1t-fb-r{right:10px}\n.g1t-fb-stars{display:flex;flex-wrap:wrap;justify-content:center;gap:2px;font-size:22px;min-height:30px}\n.g1t-fb .g1t-status,.g1t-fb .g1t-score{text-align:center}\n.g1t-rp-slots{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:10px 0}\n.g1t-rp-slot{font:inherit;cursor:pointer;min-height:110px;border-radius:16px;border:3px dashed var(--color-hover-line);background:var(--color-surface);display:flex;align-items:center;justify-content:center;padding:6px;color:var(--color-subtle)}\n.g1t-rp-slot.is-full{border-style:solid;border-color:var(--color-primary);background:#fff}\n.g1t-rp-slot.is-over{border-color:#c4a035;background:#f6e9c0}\n.g1t-rp-slots.is-solved .g1t-rp-slot{border-color:#2f7d6b;background:#d7efe6}\n.g1t-rp-n{font-size:28px;font-weight:750}\n.g1t-rp-card{display:block;width:100%;max-width:90px}\n.g1t-rp-card .g1t-rsvg{width:100%;height:auto}\n.g1t-rp-tray{display:flex;flex-wrap:wrap;gap:12px}\n.g1t-rp-src{font:inherit;cursor:grab;width:110px;padding:8px;border-radius:16px;border:2px solid var(--color-line);background:#fff;display:flex;justify-content:center;touch-action:manipulation}\n.g1t-rp-src:active{cursor:grabbing}\n.g1t-rp-lab{font-weight:700;color:var(--color-muted);margin:14px 0 6px}\n.g1t-hb{display:flex;align-items:center;gap:16px;padding:14px;border-radius:var(--radius-xl);background:#10231d;color:#7fffbf;margin:10px 0}\n.g1t-hb-heart{font-size:clamp(56px,9vw,84px);line-height:1;transition:transform .2s}\n.g1t-hb-heart.is-on{animation:g1t-heart .35s ease-out}\n@keyframes g1t-heart{0%{transform:scale(1)}25%{transform:scale(1.25)}50%{transform:scale(1.05)}70%{transform:scale(1.15)}100%{transform:scale(1)}}\n.g1t-hb-mon{flex:1;min-width:0}\n.g1t-hb-trace{display:flex;align-items:flex-end;gap:6px;height:70px;overflow:hidden;border-bottom:2px solid #2f7d6b}\n.g1t-hb-blip{flex:0 0 auto;width:14px;height:64px;background:linear-gradient(180deg,#7fffbf,#2f7d6b);clip-path:polygon(0 100%,30% 100%,45% 0,60% 100%,70% 70%,80% 100%,100% 100%);animation:g1t-fade 3s linear forwards}\n@keyframes g1t-fade{from{opacity:1}to{opacity:.25}}\n.g1t-hb-read{font-size:18px;font-weight:700;margin-top:6px;font-variant-numeric:tabular-nums}\n.g1t-dyn-big{display:flex;flex-direction:column;align-items:center;gap:4px;min-height:190px;justify-content:center;padding:10px;border-radius:var(--radius-xl);background:#fff;border:1px solid var(--color-line)}\n.g1t-dyn-e{line-height:1;transition:font-size .25s}\n.g1t-dyn-s{font-family:var(--font-display);font-style:italic;font-size:44px;line-height:1;color:var(--color-primary)}\n.g1t-dyn-w{font-size:16px;font-weight:650;color:var(--color-muted);text-align:center}\n.g1t-dyn-slide{font-size:26px}\n.g1t-dyn-ladder{display:flex;align-items:flex-end;gap:8px;justify-content:center;flex-wrap:wrap}\n.g1t-dyn-step{font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;width:64px;height:calc(var(--h) + 50px);padding:6px;border-radius:14px;border:2px solid var(--color-line);background:#fff;color:var(--color-fg);font-size:22px}\n.g1t-dyn-step b{font-family:var(--font-display);font-style:italic;font-size:20px}\n.g1t-dyn-step[aria-pressed=\"true\"]{border-color:var(--color-primary);background:var(--color-primary-soft)}\n.g1t-pass-ring{position:relative;width:min(100%,420px);aspect-ratio:1;margin:10px auto;border-radius:50%;background:radial-gradient(circle,#fff 0 55%,var(--color-primary-soft) 56% 100%)}\n.g1t-pass-seat{position:absolute;transform:translate(-50%,-50%);font-size:clamp(30px,6vw,44px);line-height:1;transition:transform .15s}\n.g1t-pass-seat.is-hold{transform:translate(-50%,-50%) scale(1.25)}\n.g1t-pass-seat.is-star::after{content:\"⭐\";position:absolute;right:-14px;top:-14px;font-size:24px}\n.g1t-pass-bag{position:absolute;transform:translate(-50%,-50%);font-size:clamp(28px,5vw,40px);transition:left .22s ease-out,top .22s ease-out}\n.g1t-pass-count{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-family:var(--font-display);font-size:clamp(48px,10vw,80px);font-weight:700;color:var(--color-primary)}\n.g1t-st-wrap{overflow-x:auto;width:0;min-width:100%;box-sizing:border-box}\n.g1t-st{position:relative;display:grid;grid-template-columns:repeat(8,minmax(64px,1fr));align-items:end;gap:6px;min-width:540px;height:400px;padding:50px 8px 8px}\n.g1t-st-step{font:inherit;cursor:pointer;height:calc(70px + var(--i) * 38px);border-radius:12px 12px 4px 4px;border:0;background:var(--c);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:2px;padding:6px 4px;box-shadow:inset 0 -5px 0 rgba(0,0,0,.2)}\n.g1t-st-step b{font-size:18px;text-shadow:0 1px 2px rgba(0,0,0,.4)}\n.g1t-st-hs{display:block;width:100%;max-width:56px}\n.g1t-st-step.is-off{opacity:.25;cursor:default}\n.g1t-st-step.is-now{outline:4px solid #2a1f3d;outline-offset:2px}\n.g1t-st-kid{position:absolute;left:calc(8px + (100% - 16px) / 8 * (var(--i) + .5));bottom:calc(8px + 70px + var(--i) * 38px + 4px);transform:translateX(-50%);font-size:40px;line-height:1;transition:left .25s,bottom .25s}\n.g1t-wx-pads{grid-template-columns:repeat(6,minmax(0,1fr))}\n.g1t-wx-tl{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}\n.g1t-wx-slot{font:inherit;cursor:pointer;min-height:96px;border-radius:14px;border:3px dashed var(--color-hover-line);background:var(--color-surface);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#fff}\n.g1t-wx-slot.is-full{border:0;background:var(--pad)}\n.g1t-wx-slot.is-now{outline:4px solid #2a1f3d;outline-offset:2px;transform:scale(1.05)}\n.g1t-wx-e{font-size:38px;line-height:1}\n.g1t-wx-slot small{font-weight:750;font-size:13px}\n.g1t-wx-n{font-size:22px;font-weight:750;color:var(--color-subtle)}\n.g1t-wx-say{font-size:17px;font-weight:650;color:var(--color-muted);min-height:1.4em}\n.g1t-hunt{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}\n.g1t-hunt-card{display:flex;align-items:center;gap:10px;padding:10px;border-radius:14px;border:2px solid var(--color-line);background:#fff}\n.g1t-hunt-card.is-found{background:#d7efe6;border-color:#2f7d6b}\n.g1t-hunt-card.is-pick{border-color:#c4a035;box-shadow:0 0 0 3px #f6e9c0}\n.g1t-hunt-e{font-size:34px;line-height:1}\n.g1t-hunt-t{flex:1;min-width:0;display:flex;flex-direction:column}\n.g1t-hunt-t small{color:var(--color-muted)}\n.g1t-hunt-ear,.g1t-hunt-chk{font:inherit;cursor:pointer;width:48px;height:48px;border-radius:12px;border:1px solid var(--color-line);background:var(--color-surface);font-size:22px;flex:0 0 auto}\n.g1t-cc-stage{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:200px;margin:10px 0;border-radius:var(--radius-xl);background:linear-gradient(#5c1a2b,#8b2a3f);color:#fff;overflow:hidden}\n.g1t-cc-curtain{position:absolute;inset:0 0 auto;height:22px;background:repeating-linear-gradient(90deg,#b8323f 0 18px,#8f2230 18px 36px)}\n.g1t-cc-who{font-size:clamp(64px,10vw,96px);line-height:1}\n.g1t-cc-sign{font-size:20px;font-weight:750;text-align:center;padding:0 10px}\n.g1t-cc-stage.is-bow{background:linear-gradient(#6b4c10,#c4a035)}\n.g1t-cc-stage.is-pause .g1t-cc-who{opacity:.85}\n.g1t-cc-pads{grid-template-columns:minmax(0,420px);justify-content:center}\n.g1t-cc-cards{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}\n.g1t-cc-cards li{display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;background:#fff;border:1px solid var(--color-line);font-weight:650}\n.g1t-cc-cards li span{font-size:26px}\n@media (max-width:640px){.g1t-rp-slots{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.g1t-rp-slot{min-height:84px}.g1t-wx-pads{grid-template-columns:repeat(3,minmax(0,1fr))}.g1t-wx-tl{grid-template-columns:repeat(3,minmax(0,1fr))}.g1t-hunt{grid-template-columns:1fr}.g1t-dyn-step{width:48px}.g1t-sing-w{padding:22px 4px 4px}}\n@media (prefers-reduced-motion:reduce){.g1t-sing-w.is-now::before,.g1t-hb-heart.is-on,.g1t-hb-blip{animation:none}.g1t-st-kid,.g1t-pass-bag{transition:none}}\n";
+  var CSS = ".g1t{--g1t-gap:14px;min-width:0;max-width:100%}\n.g1t [hidden]{display:none!important}\n.g1t-picker{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:var(--g1t-gap);margin:8px 0}\n.g1t-card{font:inherit;text-align:left;cursor:pointer;background:var(--color-paper);border:1px solid var(--color-line);border-radius:var(--radius-lg);box-shadow:var(--shadow-paper);padding:16px;min-height:128px;display:flex;flex-direction:column;gap:6px;color:inherit;transition:transform .12s,border-color .12s}\n.g1t-card:hover,.g1t-card:focus-visible{border-color:var(--color-primary);transform:translateY(-2px)}\n.g1t-card:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px}\n.g1t-card-e{font-size:40px;line-height:1}\n.g1t-card-n{font-weight:700;font-size:16.5px}\n.g1t-card-b{color:var(--color-muted);font-size:13.5px;line-height:1.35}\n.g1t-card.is-classic{background:var(--color-surface);border-style:dashed}\n.g1t-sub{font-family:var(--font-display);font-size:20px;margin:22px 0 8px}\n.g1t-stage{background:var(--color-paper);border:1px solid var(--color-line);border-radius:var(--radius-xl);box-shadow:var(--shadow-paper);padding:16px 18px 20px;margin:8px 0 24px;scroll-margin-top:84px}\n.g1t-stagebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}\n.g1t-stagebar h2{margin:0;flex:1;font-size:26px;display:flex;align-items:center;gap:10px;outline:none}\n.g1t-stage.is-big{position:fixed;inset:0;z-index:80;margin:0;border-radius:0;overflow:auto;padding:20px clamp(16px,4vw,48px);background:var(--color-bg)}\n.g1t-btn{cursor:pointer;touch-action:manipulation}\n.g1t-lg{min-height:52px;font-size:16px;padding:12px 18px}\n.g1t-xl{min-height:60px;font-size:18px;padding:14px 24px}\n.g1t-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:14px 0}\n.g1t-controls{display:flex;flex-wrap:wrap;gap:10px 18px;margin:10px 0}\n.g1t-seg{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px}\n.g1t-seg-label{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-subtle);margin-right:4px}\n.g1t-seg button{font:inherit;cursor:pointer;min-height:44px;padding:8px 14px;border-radius:999px;border:1px solid var(--color-line);background:#fff;color:var(--color-fg);font-weight:650;font-size:14.5px;touch-action:manipulation}\n.g1t-seg button[aria-pressed=true]{background:var(--color-primary);border-color:var(--color-primary);color:var(--color-primary-fg)}\n.g1t-status{font-size:clamp(18px,2.4vw,24px);font-weight:650;margin:12px 0;min-height:1.4em}\n.g1t-score{font-size:18px;font-weight:700;color:var(--color-primary);margin:8px 0}\n.g1t-emo{font-size:1.25em}\n.g1t-answers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}\n.g1t-answer{font:inherit;cursor:pointer;min-height:140px;border-radius:var(--radius-xl);border:2px solid var(--color-line);background:#fff;color:var(--color-fg);font-size:clamp(20px,3vw,28px);font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;touch-action:manipulation}\n.g1t-answer-e{font-size:clamp(48px,7vw,72px);line-height:1}\n.g1t-answer:hover{border-color:var(--color-primary)}\n.g1t .is-right{animation:g1t-pop .5s ease;border-color:#2f7d6b!important;background:#d7efe6!important}\n.g1t .is-wrong{animation:g1t-shake .45s ease;border-color:#c62828!important}\n@keyframes g1t-pop{0%{transform:scale(1)}40%{transform:scale(1.06)}100%{transform:scale(1)}}\n@keyframes g1t-shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}\n.g1t-beat-top{display:flex;flex-direction:column;align-items:center;gap:14px;margin:8px 0}\n.g1t-pulse{width:clamp(150px,30vw,240px);aspect-ratio:1;border-radius:50%;background:var(--color-primary-soft);border:6px solid var(--color-primary);display:grid;place-items:center;position:relative;transition:transform .18s ease,background .18s}\n.g1t-pulse.is-on{transform:scale(1.12);background:#d7efe6;transition:none}\n.g1t-pulse.accent.is-on{background:#f6e9c0;border-color:#c4a035}\n.g1t-pulse-e{font-size:clamp(56px,11vw,96px);line-height:1}\n.g1t-pulse-n{position:absolute;bottom:12%;font-weight:800;font-size:22px;color:var(--color-primary)}\n.g1t-dots{display:flex;gap:12px}\n.g1t-dot{width:22px;height:22px;border-radius:50%;background:var(--color-line)}\n.g1t-dot.is-on{background:var(--color-primary)}\n.g1t-dot:first-child.is-on{background:#c4a035}\n.g1t-readout{text-align:center;font-size:clamp(18px,2.4vw,24px);font-weight:700;margin:6px 0}\n.g1t-tempo{display:flex;align-items:center;gap:10px;flex-wrap:wrap}\n.g1t-range{flex:1;min-width:160px;height:44px;accent-color:var(--color-primary)}\n.g1t-xylo{display:flex;align-items:center;gap:clamp(4px,1vw,10px);height:clamp(240px,40vw,340px);padding:10px 0}\n.g1t-bar{font:inherit;cursor:pointer;flex:1 1 0;min-width:0;height:var(--h);background:var(--bar);border:0;border-radius:12px;box-shadow:inset 0 -6px 0 rgba(0,0,0,.18),0 2px 6px rgba(0,0,0,.15);display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:10px 2px;font-weight:800;touch-action:manipulation;transition:transform .1s;user-select:none;-webkit-user-select:none}\n.g1t-bar.is-on{transform:translateY(4px) scale(.97);filter:brightness(1.2)}\n.g1t-bar.is-off{opacity:.25;cursor:not-allowed}\n.g1t-bar-peg{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.7);box-shadow:0 0 0 2px rgba(0,0,0,.2)}\n.g1t-bar-main{font-size:clamp(18px,3vw,28px)}\n.g1t-bar-sub{font-size:13px;opacity:.85;font-weight:650}\n.g1t-bar-key{font-size:11px;opacity:.6;font-weight:600}\n.g1t-hand{display:flex;flex-direction:column;align-items:center;gap:2px;line-height:1.1}\n.g1t-hand-e{font-size:28px;display:inline-block}\n.g1t-hand-w{font-size:11px;font-weight:650;text-align:center;max-width:7em}\n.g1t-hand.big .g1t-hand-e{font-size:36px}\n.g1t-pads{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}\n.g1t-pad{font:inherit;cursor:pointer;min-height:clamp(120px,16vw,170px);border-radius:var(--radius-xl);border:0;background:var(--pad);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;box-shadow:inset 0 -6px 0 rgba(0,0,0,.2),0 2px 8px rgba(0,0,0,.12);position:relative;touch-action:manipulation;user-select:none;-webkit-user-select:none;transition:transform .08s}\n.g1t-pad.is-on{transform:scale(.95);filter:brightness(1.25)}\n.g1t-pad-e{font-size:clamp(44px,6vw,64px);line-height:1;filter:drop-shadow(0 2px 2px rgba(0,0,0,.2))}\n.g1t-pad-n{font-weight:750;font-size:16px;text-shadow:0 1px 2px rgba(0,0,0,.3)}\n.g1t-pad-k{position:absolute;top:8px;right:12px;font-size:12px;opacity:.75}\n.g1t-echo{display:grid;gap:10px;max-width:560px}\n.g1t-echo-bar{font:inherit;cursor:pointer;min-height:84px;border:0;border-radius:var(--radius-xl);background:var(--bar);display:flex;align-items:center;gap:16px;padding:8px 20px;box-shadow:inset 0 -6px 0 rgba(0,0,0,.18);touch-action:manipulation;transition:transform .1s;user-select:none;-webkit-user-select:none}\n.g1t-echo-la{width:88%}\n.g1t-echo-so{width:94%}\n.g1t-echo-mi{width:100%;margin-top:24px}\n.g1t-echo-bar.is-on{transform:scale(1.03);filter:brightness(1.25);box-shadow:0 0 0 5px rgba(92,61,138,.35)}\n.g1t-echo-name{font-size:30px;font-weight:800;flex:1;text-align:left}\n.g1t-echo-hl{font-size:13px;font-weight:700;opacity:.85;text-transform:uppercase;letter-spacing:.06em}\n.g1t-progress{display:flex;gap:8px;margin:6px 0 14px;min-height:44px}\n.g1t-pdot{min-width:52px;height:44px;border-radius:12px;border:2px dashed var(--color-line);display:grid;place-items:center;font-weight:700;color:var(--color-subtle)}\n.g1t-pdot.is-on{border-style:solid;border-color:var(--color-primary);color:var(--color-primary);background:var(--color-primary-soft)}\n.g1t-staff-wrap{overflow-x:auto;background:#fff;border:1px solid var(--color-line);border-radius:var(--radius-lg);padding:6px}\n.g1t-staff{display:block;width:100%;height:auto}\n.g1t-zone{cursor:pointer}\n.g1t-zone:hover{fill:rgba(92,61,138,.08)}\n.g1t-cells{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:6px;margin-top:10px}\n.g1t-cell{font:inherit;cursor:pointer;min-height:60px;border-radius:12px;border:1px solid var(--color-line);background:var(--color-surface);font-weight:750;font-size:17px;color:var(--color-fg);display:flex;flex-direction:column;align-items:center;justify-content:center;touch-action:manipulation}\n.g1t-cell small{font-size:11px;color:var(--color-subtle);font-weight:600}\n.g1t-cell.filled{background:var(--color-primary-soft);color:var(--color-primary)}\n.g1t-cell.now{outline:3px solid var(--color-primary)}\n.g1t-pipe{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:10px}\n.g1t-pipe-note{font:inherit;cursor:pointer;aspect-ratio:1;min-height:64px;border-radius:50%;border:0;background:var(--bar);font-size:clamp(20px,3vw,30px);font-weight:800;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:inset 0 -5px 0 rgba(0,0,0,.18);touch-action:manipulation;transition:transform .12s}\n.g1t-pipe-note small{font-size:12px;font-weight:650}\n.g1t-pipe-note.is-on{box-shadow:0 0 0 6px rgba(92,61,138,.35);transform:scale(1.06)}\n.g1t-badge{font-size:14px;padding:8px 12px}\n.g1t-timer{display:flex;flex-direction:column;align-items:center}\n.g1t-timer .g1t-row,.g1t-timer .g1t-controls{justify-content:center}\n.g1t-ring{position:relative;width:clamp(220px,40vw,340px);aspect-ratio:1}\n.g1t-ring svg{width:100%;height:100%;display:block}\n.g1t-ring-bar{transition:stroke-dashoffset .2s linear}\n.g1t-time{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--font-display);font-weight:700;font-size:clamp(52px,10vw,92px);font-variant-numeric:tabular-nums}\n.g1t-ring.is-done .g1t-time{color:#c62828;animation:g1t-pop .6s ease 3}\n.g1t-freeze{border-radius:var(--radius-xl);min-height:clamp(220px,36vw,340px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:var(--color-surface);border:2px solid var(--color-line);text-align:center;padding:16px}\n.g1t-freeze-e{font-size:clamp(64px,12vw,120px);line-height:1}\n.g1t-freeze-t{font-family:var(--font-display);font-weight:700;font-size:clamp(28px,6vw,64px)}\n.g1t-freeze.is-dance{background:#d7efe6;border-color:#2f7d6b}\n.g1t-freeze.is-dance .g1t-freeze-e{animation:g1t-bounce .5s ease-in-out infinite alternate}\n.g1t-freeze.is-freeze{background:#dbeafe;border-color:#3b82f6}\n@keyframes g1t-bounce{from{transform:translateY(0) rotate(-6deg)}to{transform:translateY(-14px) rotate(6deg)}}\n.g1t-tray{display:flex;flex-wrap:wrap;align-items:center;gap:10px;min-height:96px;margin:8px 0 16px}\n.g1t-item{font:inherit;cursor:pointer;min-width:110px;min-height:96px;border-radius:var(--radius-lg);border:2px solid var(--color-line);background:#fff;color:var(--color-fg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-weight:700;touch-action:manipulation}\n.g1t-item[aria-pressed=true]{border-color:var(--color-primary);box-shadow:0 0 0 4px rgba(92,61,138,.25);background:var(--color-primary-soft)}\n.g1t-item-e{font-size:44px;line-height:1}\n.g1t-bins{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}\n.g1t-bin{font:inherit;cursor:pointer;min-height:170px;border-radius:var(--radius-xl);border:3px dashed var(--color-hover-line);background:var(--color-surface);color:var(--color-fg);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:6px;padding:14px 8px;touch-action:manipulation}\n.g1t-bin-e{font-size:44px;line-height:1}\n.g1t-bin-n{font-weight:800;font-size:19px}\n.g1t-bin-got{font-size:34px;letter-spacing:4px;min-height:1.2em}\n@media (max-width:640px){\n.g1t-picker{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}\n.g1t-card{min-height:118px;padding:12px}\n.g1t-card-e{font-size:34px}\n.g1t-stage{padding:12px 12px 16px}\n.g1t-pads{grid-template-columns:repeat(2,minmax(0,1fr))}\n.g1t-cells{grid-template-columns:repeat(4,minmax(0,1fr))}\n.g1t-pipe{grid-template-columns:repeat(4,minmax(0,1fr))}\n.g1t-bins{grid-template-columns:1fr}\n.g1t-bin{min-height:96px;flex-direction:row;flex-wrap:wrap;justify-content:center;align-items:center}\n.g1t-answer{min-height:120px}\n.g1t-xylo{gap:3px;height:260px}\n.g1t-bar{border-radius:8px}\n.g1t-bar-sub,.g1t-bar-key,.g1t-hand-w{display:none}\n.g1t-hand-e{font-size:22px}\n.g1t-stagebar h2{font-size:21px;flex-basis:100%;order:-1}\n.g1t-xl{min-height:56px;font-size:17px;padding:12px 18px}\n.g1t-echo-name{font-size:26px}\n}\n@media (prefers-reduced-motion:reduce){.g1t-freeze.is-dance .g1t-freeze-e,.g1t .is-right,.g1t .is-wrong,.g1t-ring.is-done .g1t-time{animation:none}}\n@media print{.g1t{display:none!important}}\n.g1t-card.is-wide{grid-column:span 2;flex-direction:row;align-items:center;gap:16px;background:linear-gradient(135deg,var(--color-paper),var(--color-primary-soft));border-color:var(--color-hover-line)}\n.g1t-card.is-wide .g1t-card-e{font-size:56px}\n.g1t-card.is-wide .g1t-card-n{font-size:19px;display:block}\n.g1t-piano-scroll{overflow-x:auto;width:0;min-width:100%;-webkit-overflow-scrolling:touch;padding:4px 0 10px}\n.g1t-piano{--wk:calc(100% / var(--n));--bkw:calc(var(--wk) * .62);position:relative;display:flex;min-width:620px;height:clamp(200px,28vw,280px);user-select:none;-webkit-user-select:none}\n.g1t-wk{font:inherit;cursor:pointer;flex:1 1 0;min-width:0;height:100%;background:#fff;border:1px solid #bfb3cf;border-radius:0 0 10px 10px;margin:0 1px;display:flex;align-items:flex-end;justify-content:center;padding:0 0 10px;color:var(--color-fg);box-shadow:inset 0 -6px 0 #eee6f5;touch-action:manipulation}\n.g1t-wk.is-mark{background:linear-gradient(to top,var(--mk) 0 34%,#fff 34%)}\n.g1t-wk.is-on{background:var(--color-primary-soft);box-shadow:inset 0 -2px 0 #ddd0e8;transform:translateY(2px)}\n.g1t-wk.is-mark.is-on{filter:brightness(1.1)}\n.g1t-wk-lab{display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1.1}\n.g1t-wk-lab b{font-size:clamp(14px,1.8vw,20px);font-weight:800}\n.g1t-wk-lab span{font-size:12px;font-weight:650;opacity:.8}\n.g1t-wk-lab small{font-size:9.5px;font-weight:700;opacity:.75;white-space:nowrap}\n.g1t-wk.is-mark .g1t-wk-lab{background:rgba(255,255,255,.88);border-radius:8px;padding:3px 4px}\n.g1t-bk{font:inherit;cursor:pointer;position:absolute;top:0;width:var(--bkw);height:60%;background:#2a1f3d;border:0;border-radius:0 0 7px 7px;z-index:2;box-shadow:inset 0 -5px 0 #120c1c;touch-action:manipulation}\n.g1t-bk.is-on{background:#5c3d8a}\n@media (max-width:640px){.g1t-card.is-wide{grid-column:span 2}.g1t-card.is-wide .g1t-card-e{font-size:44px}.g1t-piano{min-width:720px;height:220px}}\n.g1t-card-t{display:flex;flex-direction:column;gap:4px}\n.g1t-groups>.g1t-sub:first-child{margin-top:4px}\n.g1t-rhythm-view{background:#fff;border:1px solid var(--color-line);border-radius:var(--radius-lg);padding:8px;overflow-x:auto}\n.g1t-rsvg{display:block;width:100%;height:auto;max-height:150px}\n.g1t-choices{display:grid;gap:12px;grid-template-columns:repeat(3,minmax(0,1fr))}\n.g1t-choice{font:inherit;cursor:pointer;background:#fff;border:2px solid var(--color-line);border-radius:var(--radius-xl);padding:14px 10px;touch-action:manipulation;min-height:110px}\n.g1t-choice:hover{border-color:var(--color-primary)}\n.g1t-choice .g1t-rsvg{max-height:110px}\n.g1t-dots-big{justify-content:center;margin:6px 0 10px}\n.g1t-dots-big .g1t-dot{width:30px;height:30px}\n.g1t-echo-rows{display:flex;align-items:center;gap:12px;max-width:420px;min-height:70px}\n.g1t-echo-rows .g1t-rsvg{max-height:70px}\n.g1t-echo-lab{font-weight:700;white-space:nowrap;color:var(--color-muted)}\n.g1t-bigdrum{font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;width:min(100%,380px);aspect-ratio:1.5;margin:8px auto;border-radius:50% / 40%;border:6px solid #8d5524;background:radial-gradient(circle at 50% 40%,#fff7e6,#f2d7a6);box-shadow:0 10px 0 #8d5524,0 14px 22px rgba(0,0,0,.15);touch-action:manipulation;user-select:none;-webkit-user-select:none;transition:transform .06s}\n.g1t-bigdrum span{font-size:clamp(56px,10vw,90px);line-height:1}\n.g1t-bigdrum b{font-size:18px;color:#6b4318}\n.g1t-bigdrum.is-on{transform:translateY(6px);box-shadow:0 4px 0 #8d5524}\n.g1t-flash{--fc:var(--color-primary);margin:10px auto;max-width:460px;min-height:clamp(260px,40vw,360px);border-radius:28px;background:#fff;border:10px solid var(--fc);box-shadow:var(--shadow-paper);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center}\n.g1t-flash.is-new{animation:g1t-pop .35s ease}\n.g1t-flash-e{font-size:clamp(90px,16vw,150px);line-height:1.1;display:inline-block}\n.g1t-flash-w{font-size:16px;color:var(--color-muted);font-weight:650}\n.g1t-flash-n{font-family:var(--font-display);font-size:clamp(48px,9vw,80px);font-weight:700;line-height:1}\n.g1t-flash-n.is-hidden{color:var(--color-subtle)}\n.g1t-guess{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}\n.g1t-sfx .g1t-pad{min-height:clamp(110px,14vw,150px)}\n.g1t-loop{display:grid;gap:6px;overflow-x:auto;padding-bottom:4px}\n.g1t-loop-row{display:grid;grid-template-columns:minmax(120px,1.4fr) repeat(8,minmax(38px,1fr));gap:6px;align-items:stretch}\n.g1t-loop-lab{font:inherit;cursor:pointer;display:flex;align-items:center;gap:8px;border:1px solid var(--color-line);background:#fff;border-radius:12px;padding:6px 10px;font-weight:700;font-size:14.5px;color:var(--color-fg);text-align:left}\n.g1t-loop-lab span:first-child{font-size:22px}\n.g1t-loop-cell{font:inherit;cursor:pointer;min-height:52px;border-radius:10px;border:1px solid var(--color-line);background:var(--color-surface);touch-action:manipulation}\n.g1t-loop-cell.is-first{border-left:3px solid var(--color-hover-line)}\n.g1t-loop-cell[aria-pressed=true]{background:var(--color-primary);border-color:var(--color-primary)}\n.g1t-loop-cell.is-now{box-shadow:0 0 0 3px #c4a035 inset}\n.g1t-loop-cell[aria-pressed=true].is-now{background:#c4a035;border-color:#c4a035}\n.g1t-meterbox{display:flex;flex-direction:column;align-items:stretch}\n.g1t-meter-face{font-size:clamp(80px,14vw,130px);text-align:center;line-height:1.1}\n.g1t-meter{position:relative;height:56px;border-radius:999px;background:var(--color-surface);border:2px solid var(--color-line);overflow:hidden}\n.g1t-meter-fill{height:100%;width:0;background:#2f7d6b;transition:width .08s linear}\n.g1t-meter-fill.is-quiet{background:#3b82f6}\n.g1t-meter-fill.is-loud{background:#c62828}\n.g1t-meter-line{position:absolute;top:0;bottom:0;width:4px;margin-left:-2px;background:#2a1f3d}\n.g1t-meterbox .g1t-status{text-align:center}\n.g1t-meterbox .g1t-row{justify-content:center}\n.g1t-names{width:100%;max-width:420px;font:inherit;font-size:16px;padding:10px 12px;border-radius:12px;border:1px solid var(--color-line);background:#fff}\n.g1t-pick{margin:12px 0;min-height:clamp(140px,22vw,220px);display:grid;place-items:center;text-align:center;font-family:var(--font-display);font-weight:700;font-size:clamp(48px,10vw,110px);background:#fff;border:2px dashed var(--color-line);border-radius:var(--radius-xl);padding:10px;word-break:break-word}\n.g1t-pick.is-done{border-style:solid;border-color:#c4a035;background:#f6e9c0;animation:g1t-pop .5s ease}\n.g1t-leaders{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}\n.g1t-leader{font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 6px;border-radius:var(--radius-lg);border:2px solid var(--color-line);background:#fff;color:var(--color-fg);font-weight:700;touch-action:manipulation}\n.g1t-leader span:first-child{font-size:44px;line-height:1.1}\n.g1t-leader small{color:var(--color-muted);font-weight:600}\n.g1t-leader[aria-pressed=true]{border-color:var(--color-primary);background:var(--color-primary-soft)}\n.g1t-lane{margin:14px 0 6px;overflow:hidden;border-radius:var(--radius-xl);background:linear-gradient(#d7efe6 0 70%,#b9dfc9 70%);border:2px solid #9fd0b6;height:clamp(110px,16vw,150px);display:flex;align-items:center}\n.g1t-lane-track{display:flex;will-change:transform}\n.g1t-marcher{flex:0 0 auto;width:clamp(64px,9vw,96px);text-align:center;font-size:clamp(48px,7vw,72px);line-height:1;display:inline-block;transform:scaleX(-1)}\n.g1t-marcher.is-hop{animation:g1t-hop .25s ease-out}\n@keyframes g1t-hop{0%{transform:scaleX(-1) translateY(0)}40%{transform:scaleX(-1) translateY(-18px)}100%{transform:scaleX(-1) translateY(0)}}\n.g1t-parade-count{text-align:center;font-family:var(--font-display);font-weight:700;font-size:44px;min-height:52px;color:var(--color-primary)}\n@media (max-width:640px){.g1t-choices{grid-template-columns:1fr}.g1t-leaders{grid-template-columns:repeat(2,minmax(0,1fr))}.g1t-loop-row{grid-template-columns:44px repeat(8,minmax(28px,1fr));gap:4px}.g1t-loop-name{display:none}.g1t-loop-lab{justify-content:center;padding:4px}.g1t-loop-cell{min-height:46px}.g1t-guess{grid-template-columns:repeat(2,minmax(0,1fr))}}\n@media (prefers-reduced-motion:reduce){.g1t-marcher.is-hop,.g1t-flash.is-new,.g1t-pick.is-done{animation:none}}\n.g1t-stage,.g1t-body{min-width:0;max-width:100%}\n.g1t-loop,.g1t-rhythm-view{width:0;min-width:100%;box-sizing:border-box}\n.g1t-lane{width:0;min-width:100%;box-sizing:border-box}\n.g1t-hs{display:block;width:100%;height:auto}\n.g1t-hand-e{display:block;width:58px}\nimg.g1t-hs{border-radius:50%;-webkit-user-select:none;user-select:none;-webkit-user-drag:none}\n.g1t-hand.big .g1t-hand-e{width:84px}\n.g1t-card-e .g1t-hs-icon{width:1.5em;height:auto;display:inline-block;vertical-align:middle}\n.g1t-title-ic .g1t-hs-icon{width:1.6em;display:inline-block;vertical-align:middle}\n.g1t-flash-art{display:flex;align-items:center;justify-content:center;gap:10px;width:100%}\n.g1t-flash-e{width:min(62%,260px);font-size:inherit;line-height:1}\n.g1t-flash-h{width:clamp(44px,8vw,64px)}\n.g1t-hs-height{display:block;width:100%;height:auto}\n.g1t-flash-w{max-width:34ch;text-align:center;padding:0 12px;line-height:1.35}\n.g1t-hs-ladder{display:flex;align-items:flex-end;justify-content:safe center;gap:8px;margin:10px 0;padding:10px;background:#fff;border:1px solid var(--color-line);border-radius:var(--radius-xl);overflow-x:auto;width:0;min-width:100%;box-sizing:border-box}\n.g1t-hs-step{font:inherit;cursor:pointer;flex:0 0 auto;width:clamp(70px,8.6vw,104px);margin-bottom:calc(var(--lv) * clamp(10px,2vw,22px));display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px;background:#fff;border:3px solid var(--fc);border-radius:16px;color:var(--color-fg)}\n.g1t-hs-step b{font-family:var(--font-display);font-size:22px;line-height:1}\n.g1t-hs-step small{font-size:11px;color:var(--color-muted);font-weight:650;text-align:center}\n.g1t-hs-stepart{display:block;width:100%}\n.g1t-countbox{text-align:center;margin:4px 0 8px}\n.g1t-count-lab{font-weight:750;font-size:18px;color:var(--color-muted)}\n.g1t-count4{display:flex;justify-content:center;gap:clamp(10px,3vw,22px);margin-top:4px}\n.g1t-count4 span{width:clamp(56px,10vw,84px);height:clamp(56px,10vw,84px);border-radius:50%;display:grid;place-items:center;font-family:var(--font-display);font-weight:700;font-size:clamp(32px,6vw,52px);background:var(--color-surface);border:3px solid var(--color-line);color:var(--color-subtle);transition:transform .08s}\n.g1t-count4 span.is-past{color:var(--color-muted)}\n.g1t-count4 span.is-on{background:#c4a035;border-color:#8a6d1a;color:#fff;transform:scale(1.12)}\n@media (max-width:640px){.g1t-hand-e{width:44px}.g1t-hand.big .g1t-hand-e{width:62px}.g1t-hs-step{width:72px}}\n/* ---- batch 3 ---- */\n.g1t-br-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:10px 0}\n.g1t-br-box{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 6px;border-radius:var(--radius-lg);border:2px solid var(--color-line);background:#fff;text-align:center;transition:transform .08s}\n.g1t-br-box.is-now{border-color:#c62828;background:#fdecea;transform:scale(1.04)}\n.g1t-br-box.is-rest .g1t-br-w{color:var(--color-subtle)}\n.g1t-br-heart{font-size:clamp(26px,4vw,40px);line-height:1}\n.g1t-br-box:not(.is-now) .g1t-br-heart{filter:grayscale(.55);opacity:.7}\n.g1t-br-w{font-weight:750;font-size:clamp(16px,2.2vw,22px);min-height:1.3em}\n.g1t-br-r{font-size:13px;color:var(--color-muted);font-weight:650}\n.g1t-br-pads{grid-template-columns:repeat(2,minmax(0,1fr));margin-top:12px}\n.g1t-nm-input{flex:1 1 220px}\n.g1t-nm-view{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin:12px 0;padding:10px;background:#fff;border:1px solid var(--color-line);border-radius:var(--radius-xl);min-height:120px}\n.g1t-nm-word{display:flex;flex-direction:column;align-items:center;padding:6px;border-radius:14px;border:2px solid transparent}\n.g1t-nm-word .g1t-rsvg{width:auto;height:84px;max-height:none}\n.g1t-nm-word.is-now{border-color:#c4a035;background:#f6e9c0}\n.g1t-nm-name{font-weight:800;font-size:20px}\n.g1t-nm-list{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}\n.g1t-nm-chip{display:flex;align-items:center;gap:4px;padding:4px 6px 4px 12px;border-radius:999px;border:1px solid var(--color-line);background:var(--color-surface)}\n.g1t-nm-chip .btn{min-height:34px;padding:4px 10px}\n.g1t-nm-chipname{font-weight:750}\n.g1t-nm-n{font-size:14px;font-weight:700;min-width:3em;text-align:center}\n.g1t-body-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}\n.g1t-body-card{font:inherit;cursor:pointer;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:clamp(130px,17vw,190px);border-radius:var(--radius-xl);border:4px solid var(--bc);background:#fff;color:var(--color-fg);transition:transform .08s}\n.g1t-body-card.is-now{background:var(--bc);color:#fff;transform:scale(1.05)}\n.g1t-body-card small{position:absolute;top:6px;left:10px;font-weight:700;opacity:.6}\n.g1t-body-e{font-size:clamp(48px,7vw,76px);line-height:1}\n.g1t-body-n{font-weight:800;font-size:clamp(18px,2.4vw,24px)}\n.g1t-ball-box{position:relative;height:clamp(220px,32vw,340px);border-radius:var(--radius-xl);background:linear-gradient(#eef6ff,#fff);border:2px solid var(--color-line);overflow:hidden}\n.g1t-ball-floor{position:absolute;left:0;right:0;bottom:0;height:44px;display:flex;background:#e8dff5}\n.g1t-ball-spot{flex:1;display:grid;place-items:center;font-weight:800;color:var(--color-muted);border-left:1px dashed #cbbde0}\n.g1t-ball-spot:first-child{border-left:0}\n.g1t-ball-spot.is-on{background:#c4a035;color:#fff}\n.g1t-ball{position:absolute;left:0;top:0;width:clamp(44px,6vw,64px);height:clamp(44px,6vw,64px);border-radius:50%;box-shadow:0 6px 10px rgba(0,0,0,.18);will-change:transform}\n.g1t-opp{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:center}\n.g1t-wheel-wrap{position:relative;max-width:360px;margin:0 auto;width:100%}\n.g1t-wheel-arrow{position:absolute;top:-6px;left:50%;transform:translateX(-50%);font-size:32px;color:#2a1f3d;z-index:2;line-height:1}\n.g1t-wheel{width:100%;aspect-ratio:1;margin-top:18px}\n.g1t-wheel-svg{width:100%;height:100%;display:block}\n.g1t-opp-card{--oc:var(--color-primary);min-height:240px;border-radius:26px;border:8px solid var(--oc);background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:14px;gap:6px}\n.g1t-opp-card.is-new{animation:g1t-pop .4s ease}\n.g1t-opp-e{font-size:clamp(70px,11vw,110px);line-height:1}\n.g1t-opp-n{font-family:var(--font-display);font-weight:700;font-size:clamp(34px,5vw,52px);color:var(--oc);line-height:1.05}\n.g1t-opp-m{font-size:17px;font-weight:600;max-width:26ch}\n.g1t-bw-chart{display:flex;flex-wrap:wrap;gap:8px 6px;padding:12px;background:#fff;border:1px solid var(--color-line);border-radius:var(--radius-xl);max-height:260px;overflow-y:auto;margin:10px 0;position:relative}\n.g1t-bw-note{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:40px}\n.g1t-bw-dot{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px;border:2px solid rgba(0,0,0,.15);transition:transform .08s}\n.g1t-bw-dot.is-dark{color:#2a1f3d}\n.g1t-bw-note.is-long .g1t-bw-dot{width:50px;height:50px}\n.g1t-bw-note.is-short .g1t-bw-dot{width:28px;height:28px;font-size:12px}\n.g1t-bw-note.is-past{opacity:.45}\n.g1t-bw-note.is-now .g1t-bw-dot{transform:scale(1.35);box-shadow:0 0 0 4px #2a1f3d}\n.g1t-bw-w{font-size:12px;color:var(--color-muted);font-weight:650}\n.g1t-bw-tubes{display:flex;align-items:flex-end;justify-content:center;gap:clamp(4px,1vw,10px);height:clamp(150px,20vw,210px);margin:10px 0}\n.g1t-bw-tube{font:inherit;cursor:pointer;flex:0 1 64px;height:var(--th);border-radius:14px;border:0;background:linear-gradient(90deg,rgba(255,255,255,.35),transparent 40%,rgba(0,0,0,.12)),var(--tc);display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;touch-action:manipulation;transition:transform .08s}\n.g1t-bw-tube.is-on{transform:scale(.95)}\n.g1t-bw-tube.is-lit{box-shadow:0 0 0 4px #2a1f3d,0 0 18px var(--tc);transform:translateY(-6px)}\n.g1t-bw-l{color:#fff;font-weight:800;font-size:18px}\n.g1t-bw-l.is-dark{color:#2a1f3d}\n.g1t-bingo-card{background:#fff;border:3px solid #2a1f3d;border-radius:18px;padding:12px;max-width:560px;margin:8px auto}\n.g1t-bingo-head{text-align:center;font-weight:800;letter-spacing:.05em;margin-bottom:8px}\n.g1t-bingo-grid{display:grid;grid-template-columns:repeat(var(--s),minmax(0,1fr));gap:8px}\n.g1t-bingo-cell{border:2px solid var(--color-line);border-radius:10px;padding:4px;display:grid;place-items:center;min-height:56px}\n.g1t-bingo-cell.is-free{font-weight:800;background:#f6e9c0}\n.g1t-bingo-now{min-height:90px;display:grid;place-items:center}\n.g1t-bingo-hidden{font-size:28px;font-weight:800;color:var(--color-subtle);text-align:center;padding:14px}\n.g1t-bingo-called{display:flex;flex-wrap:wrap;gap:6px}\n.g1t-bingo-mini{width:120px;background:#fff;border:1px solid var(--color-line);border-radius:8px;padding:2px}\n.g1t-cr{background:#fff;border:1px solid var(--color-line);border-radius:var(--radius-xl);padding:14px;display:flex;flex-direction:column;gap:14px}\n.g1t-cr.is-new{animation:g1t-pop .35s ease}\n.g1t-cr-kind{font-weight:750;color:var(--color-muted)}\n.g1t-cr-line{display:grid;grid-template-columns:110px 1fr;gap:10px;align-items:center}\n.g1t-cr-who{display:flex;flex-direction:column;align-items:center;font-weight:800;font-size:15px}\n.g1t-cr-who span{font-size:40px;line-height:1.1}\n.g1t-cr-words{display:flex;flex-wrap:wrap;gap:8px}\n.g1t-cr-syl{--sc:#e8dff5;display:flex;flex-direction:column;align-items:center;min-width:64px;padding:8px 10px;border-radius:14px;background:var(--sc);color:#fff}\n.g1t-cr-mi{color:#2a1f3d}\n.g1t-cr-syl b{font-size:clamp(20px,3vw,30px);line-height:1.1}\n.g1t-cr-syl small{font-size:12px;font-weight:700;opacity:.85}\n.g1t-cr-syl.is-quick{min-width:48px}\n.g1t-cr-so{transform:translateY(-10px)}\n.g1t-cr-la{transform:translateY(-18px)}\n.g1t-cr-words{padding-top:18px}\n.g1t-cond-stage{display:flex;align-items:center;justify-content:center;gap:18px;margin:6px 0 12px}\n.g1t-cond-baton{font-size:clamp(50px,8vw,80px);transition:transform .12s}\n.g1t-cond-baton.is-beat{transform:rotate(-25deg) translateY(-6px)}\n.g1t-cond-sign{--dc:#546e7a;flex:1;max-width:560px;min-height:clamp(200px,26vw,280px);border-radius:28px;background:var(--dc);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:14px;transition:background .2s}\n.g1t-cond-e{font-size:clamp(56px,9vw,90px);line-height:1.1}\n.g1t-cond-w{font-family:var(--font-display);font-weight:800;font-size:clamp(38px,6vw,64px);line-height:1}\n.g1t-cond-s{font-size:17px;font-weight:650;opacity:.95;margin-top:4px}\n.g1t-cond-sym{font-family:Georgia,serif;font-weight:800;font-size:1.3em}\n.g1t-cond-main{min-width:220px;font-size:22px}\n.g1t-siren{background:#fff;border:1px solid var(--color-line);border-radius:var(--radius-xl);padding:6px;margin:8px 0}\n.g1t-siren-svg{display:block;width:100%;height:auto;max-height:380px}\n.g1t-siren.is-draw .g1t-siren-svg{touch-action:none;cursor:crosshair;background:repeating-linear-gradient(0deg,transparent 0 39px,#f1ecf8 39px 40px)}\n.g1t-orch{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}\n.g1t-orch-tile{--oc:#555;font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:12px 6px;border-radius:var(--radius-xl);border:3px dashed var(--color-line);background:#fff;color:var(--color-muted);transition:transform .08s}\n.g1t-orch-tile[aria-pressed=true]{border:3px solid var(--oc);color:var(--color-fg);background:#fff}\n.g1t-orch-tile[aria-pressed=false] .g1t-orch-e{filter:grayscale(1);opacity:.5}\n.g1t-orch-tile.is-hit{background:var(--oc);color:#fff;transform:scale(1.05)}\n.g1t-orch-e{font-size:clamp(40px,6vw,60px);line-height:1.1}\n.g1t-orch-n{font-weight:800}\n.g1t-orch-st{font-size:12px;font-weight:650}\n.g1t-voice-ladder{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:end}\n.g1t-voice-step{--vc:#555;font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;border-radius:14px;border:3px solid var(--vc);background:#fff;color:var(--color-fg);font-weight:750}\n.g1t-voice-step:nth-child(1){min-height:70px}.g1t-voice-step:nth-child(2){min-height:84px}.g1t-voice-step:nth-child(3){min-height:98px}.g1t-voice-step:nth-child(4){min-height:112px}\n.g1t-voice-step span:first-child{font-size:30px}\n.g1t-voice-step[aria-pressed=true]{background:var(--vc);color:#fff}\n.g1t-voice-card{--vc:var(--color-primary);margin:12px auto;max-width:560px;min-height:260px;border-radius:28px;border:10px solid var(--vc);background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:14px;gap:6px}\n.g1t-voice-card.is-new{animation:g1t-pop .35s ease}\n.g1t-voice-e{font-size:clamp(70px,12vw,120px);line-height:1}\n.g1t-voice-n{font-family:var(--font-display);font-weight:700;font-size:clamp(30px,5vw,48px);color:var(--vc)}\n.g1t-voice-p{font-size:clamp(20px,3vw,28px);font-weight:750}\n.g1t-voice-tip{font-size:15px;color:var(--color-muted);max-width:34ch}\n@media (max-width:640px){.g1t-br-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.g1t-body-cards,.g1t-orch{grid-template-columns:repeat(2,minmax(0,1fr))}.g1t-opp{grid-template-columns:1fr}.g1t-cr-line{grid-template-columns:1fr}.g1t-cr-who{flex-direction:row;gap:6px}.g1t-cr-who span{font-size:28px}.g1t-bw-dot{width:32px;height:32px}.g1t-bw-note.is-long .g1t-bw-dot{width:42px;height:42px}.g1t-cond-stage{flex-direction:column}.g1t-voice-step span:first-child{font-size:24px}.g1t-voice-step{font-size:13px}.g1t-bingo-cell{min-height:40px}}\n@media (prefers-reduced-motion:reduce){.g1t-opp-card.is-new,.g1t-cr.is-new,.g1t-voice-card.is-new{animation:none}.g1t-cond-baton{transition:none}}\n.g1t-hs-view{font-size:12px;font-weight:750;letter-spacing:.04em;text-transform:uppercase;color:var(--color-subtle)}\n.g1t-hs-ladder{position:relative;padding-top:30px}\n.g1t-hs-ladder-lab{position:absolute;top:8px;left:12px}\n/* ---- batch 4 ---- */\n.g1t-sing{display:flex;flex-direction:column;gap:14px;margin:12px 0;padding:18px 14px;background:#fff;border:1px solid var(--color-line);border-radius:var(--radius-xl)}\n.g1t-sing-line{display:flex;flex-wrap:wrap;gap:6px 4px;align-items:flex-end}\n.g1t-sing-w{position:relative;display:inline-flex;flex-direction:column;align-items:center;min-width:calc(var(--dur) * 3.2em);padding:26px 6px 6px;border-radius:12px;font-size:clamp(20px,3vw,32px);font-weight:750;color:var(--color-fg);transition:background .15s,color .15s}\n.g1t-sing-w::before{content:\"\";position:absolute;top:2px;left:50%;width:18px;height:18px;margin-left:-9px;border-radius:50%;background:#c4a035;opacity:0;transform:translateY(-6px)}\n.g1t-sing-w.is-now{background:var(--color-primary-soft);color:var(--color-primary)}\n.g1t-sing-w.is-now::before{opacity:1;animation:g1t-bounce .3s ease-out}\n.g1t-sing-w.is-done{color:var(--color-subtle)}\n.g1t-sing-s{font-size:13px;font-weight:650;color:var(--color-muted);letter-spacing:.03em}\n@keyframes g1t-bounce{0%{transform:translateY(-14px)}60%{transform:translateY(2px)}100%{transform:translateY(0)}}\n.g1t-fb-tap{margin:8px auto}\n.g1t-fb-gauge{position:relative;height:34px;max-width:420px;margin:10px auto;border-radius:999px;background:linear-gradient(90deg,#f6e9c0,#d7efe6 40% 60%,#f6e9c0)}\n.g1t-fb-mid{position:absolute;left:50%;top:4px;bottom:4px;width:3px;margin-left:-1px;background:#2f7d6b;border-radius:2px}\n.g1t-fb-dot{position:absolute;left:50%;top:50%;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;background:var(--color-primary);transition:left .15s}\n.g1t-fb-l,.g1t-fb-r{position:absolute;top:50%;transform:translateY(-50%);font-size:12px;font-weight:700;color:var(--color-muted)}\n.g1t-fb-l{left:10px}.g1t-fb-r{right:10px}\n.g1t-fb-stars{display:flex;flex-wrap:wrap;justify-content:center;gap:2px;font-size:22px;min-height:30px}\n.g1t-fb .g1t-status,.g1t-fb .g1t-score{text-align:center}\n.g1t-rp-slots{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:10px 0}\n.g1t-rp-slot{font:inherit;cursor:pointer;min-height:110px;border-radius:16px;border:3px dashed var(--color-hover-line);background:var(--color-surface);display:flex;align-items:center;justify-content:center;padding:6px;color:var(--color-subtle)}\n.g1t-rp-slot.is-full{border-style:solid;border-color:var(--color-primary);background:#fff}\n.g1t-rp-slot.is-over{border-color:#c4a035;background:#f6e9c0}\n.g1t-rp-slots.is-solved .g1t-rp-slot{border-color:#2f7d6b;background:#d7efe6}\n.g1t-rp-n{font-size:28px;font-weight:750}\n.g1t-rp-card{display:block;width:100%;max-width:90px}\n.g1t-rp-card .g1t-rsvg{width:100%;height:auto}\n.g1t-rp-tray{display:flex;flex-wrap:wrap;gap:12px}\n.g1t-rp-src{font:inherit;cursor:grab;width:110px;padding:8px;border-radius:16px;border:2px solid var(--color-line);background:#fff;display:flex;justify-content:center;touch-action:manipulation}\n.g1t-rp-src:active{cursor:grabbing}\n.g1t-rp-lab{font-weight:700;color:var(--color-muted);margin:14px 0 6px}\n.g1t-hb{display:flex;align-items:center;gap:16px;padding:14px;border-radius:var(--radius-xl);background:#10231d;color:#7fffbf;margin:10px 0}\n.g1t-hb-heart{font-size:clamp(56px,9vw,84px);line-height:1;transition:transform .2s}\n.g1t-hb-heart.is-on{animation:g1t-heart .35s ease-out}\n@keyframes g1t-heart{0%{transform:scale(1)}25%{transform:scale(1.25)}50%{transform:scale(1.05)}70%{transform:scale(1.15)}100%{transform:scale(1)}}\n.g1t-hb-mon{flex:1;min-width:0}\n.g1t-hb-trace{display:flex;align-items:flex-end;gap:6px;height:70px;overflow:hidden;border-bottom:2px solid #2f7d6b}\n.g1t-hb-blip{flex:0 0 auto;width:14px;height:64px;background:linear-gradient(180deg,#7fffbf,#2f7d6b);clip-path:polygon(0 100%,30% 100%,45% 0,60% 100%,70% 70%,80% 100%,100% 100%);animation:g1t-fade 3s linear forwards}\n@keyframes g1t-fade{from{opacity:1}to{opacity:.25}}\n.g1t-hb-read{font-size:18px;font-weight:700;margin-top:6px;font-variant-numeric:tabular-nums}\n.g1t-dyn-big{display:flex;flex-direction:column;align-items:center;gap:4px;min-height:190px;justify-content:center;padding:10px;border-radius:var(--radius-xl);background:#fff;border:1px solid var(--color-line)}\n.g1t-dyn-e{line-height:1;transition:font-size .25s}\n.g1t-dyn-s{font-family:var(--font-display);font-style:italic;font-size:44px;line-height:1;color:var(--color-primary)}\n.g1t-dyn-w{font-size:16px;font-weight:650;color:var(--color-muted);text-align:center}\n.g1t-dyn-slide{font-size:26px}\n.g1t-dyn-ladder{display:flex;align-items:flex-end;gap:8px;justify-content:center;flex-wrap:wrap}\n.g1t-dyn-step{font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;width:64px;height:calc(var(--h) + 50px);padding:6px;border-radius:14px;border:2px solid var(--color-line);background:#fff;color:var(--color-fg);font-size:22px}\n.g1t-dyn-step b{font-family:var(--font-display);font-style:italic;font-size:20px}\n.g1t-dyn-step[aria-pressed=\"true\"]{border-color:var(--color-primary);background:var(--color-primary-soft)}\n.g1t-pass-ring{position:relative;width:min(100%,420px);aspect-ratio:1;margin:10px auto;border-radius:50%;background:radial-gradient(circle,#fff 0 55%,var(--color-primary-soft) 56% 100%)}\n.g1t-pass-seat{position:absolute;transform:translate(-50%,-50%);font-size:clamp(30px,6vw,44px);line-height:1;transition:transform .15s}\n.g1t-pass-seat.is-hold{transform:translate(-50%,-50%) scale(1.25)}\n.g1t-pass-seat.is-star::after{content:\"⭐\";position:absolute;right:-14px;top:-14px;font-size:24px}\n.g1t-pass-bag{position:absolute;transform:translate(-50%,-50%);font-size:clamp(28px,5vw,40px);transition:left .22s ease-out,top .22s ease-out}\n.g1t-pass-count{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-family:var(--font-display);font-size:clamp(48px,10vw,80px);font-weight:700;color:var(--color-primary)}\n.g1t-st-wrap{overflow-x:auto;width:0;min-width:100%;box-sizing:border-box}\n.g1t-st{position:relative;display:grid;grid-template-columns:repeat(8,minmax(64px,1fr));align-items:end;gap:6px;min-width:540px;height:400px;padding:50px 8px 8px}\n.g1t-st-step{font:inherit;cursor:pointer;height:calc(70px + var(--i) * 38px);border-radius:12px 12px 4px 4px;border:0;background:var(--c);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:2px;padding:6px 4px;box-shadow:inset 0 -5px 0 rgba(0,0,0,.2)}\n.g1t-st-step b{font-size:18px;text-shadow:0 1px 2px rgba(0,0,0,.4)}\n.g1t-st-hs{display:block;width:100%;max-width:56px}\n.g1t-st-step.is-off{opacity:.25;cursor:default}\n.g1t-st-step.is-now{outline:4px solid #2a1f3d;outline-offset:2px}\n.g1t-st-kid{position:absolute;left:calc(8px + (100% - 16px) / 8 * (var(--i) + .5));bottom:calc(8px + 70px + var(--i) * 38px + 4px);transform:translateX(-50%);font-size:40px;line-height:1;transition:left .25s,bottom .25s}\n.g1t-wx-pads{grid-template-columns:repeat(6,minmax(0,1fr))}\n.g1t-wx-tl{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}\n.g1t-wx-slot{font:inherit;cursor:pointer;min-height:96px;border-radius:14px;border:3px dashed var(--color-hover-line);background:var(--color-surface);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#fff}\n.g1t-wx-slot.is-full{border:0;background:var(--pad)}\n.g1t-wx-slot.is-now{outline:4px solid #2a1f3d;outline-offset:2px;transform:scale(1.05)}\n.g1t-wx-e{font-size:38px;line-height:1}\n.g1t-wx-slot small{font-weight:750;font-size:13px}\n.g1t-wx-n{font-size:22px;font-weight:750;color:var(--color-subtle)}\n.g1t-wx-say{font-size:17px;font-weight:650;color:var(--color-muted);min-height:1.4em}\n.g1t-hunt{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}\n.g1t-hunt-card{display:flex;align-items:center;gap:10px;padding:10px;border-radius:14px;border:2px solid var(--color-line);background:#fff}\n.g1t-hunt-card.is-found{background:#d7efe6;border-color:#2f7d6b}\n.g1t-hunt-card.is-pick{border-color:#c4a035;box-shadow:0 0 0 3px #f6e9c0}\n.g1t-hunt-e{font-size:34px;line-height:1}\n.g1t-hunt-t{flex:1;min-width:0;display:flex;flex-direction:column}\n.g1t-hunt-t small{color:var(--color-muted)}\n.g1t-hunt-ear,.g1t-hunt-chk{font:inherit;cursor:pointer;width:48px;height:48px;border-radius:12px;border:1px solid var(--color-line);background:var(--color-surface);font-size:22px;flex:0 0 auto}\n.g1t-cc-stage{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:200px;margin:10px 0;border-radius:var(--radius-xl);background:linear-gradient(#5c1a2b,#8b2a3f);color:#fff;overflow:hidden}\n.g1t-cc-curtain{position:absolute;inset:0 0 auto;height:22px;background:repeating-linear-gradient(90deg,#b8323f 0 18px,#8f2230 18px 36px)}\n.g1t-cc-who{font-size:clamp(64px,10vw,96px);line-height:1}\n.g1t-cc-sign{font-size:20px;font-weight:750;text-align:center;padding:0 10px}\n.g1t-cc-stage.is-bow{background:linear-gradient(#6b4c10,#c4a035)}\n.g1t-cc-stage.is-pause .g1t-cc-who{opacity:.85}\n.g1t-cc-pads{grid-template-columns:minmax(0,420px);justify-content:center}\n.g1t-cc-cards{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}\n.g1t-cc-cards li{display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;background:#fff;border:1px solid var(--color-line);font-weight:650}\n.g1t-cc-cards li span{font-size:26px}\n@media (max-width:640px){.g1t-rp-slots{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.g1t-rp-slot{min-height:84px}.g1t-wx-pads{grid-template-columns:repeat(3,minmax(0,1fr))}.g1t-wx-tl{grid-template-columns:repeat(3,minmax(0,1fr))}.g1t-hunt{grid-template-columns:1fr}.g1t-dyn-step{width:48px}.g1t-sing-w{padding:22px 4px 4px}}\n@media (prefers-reduced-motion:reduce){.g1t-sing-w.is-now::before,.g1t-hb-heart.is-on,.g1t-hb-blip{animation:none}.g1t-st-kid,.g1t-pass-bag{transition:none}}\n/* ---------- Batch 5 tools ---------- */\n.g1t-answer-art svg{width:clamp(96px,16vw,140px);height:auto;display:block}\n.g1t-cp-stage{border:1px solid var(--color-line);border-radius:var(--radius-xl);background:var(--color-surface,#f7f2fb);padding:14px;margin:12px 0;min-width:0}\n.g1t-cp-who{font-size:clamp(20px,3vw,28px);font-weight:750;margin-bottom:8px}\n.g1t-cp-who.is-you{color:#2f7d6b}\n.g1t-cp-view{display:flex;flex-direction:column;gap:10px}\n.g1t-cp-line{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;min-height:96px;padding-top:6px}\n.g1t-cp-line.is-answer{border-top:2px dashed var(--color-line);padding-top:12px}\n.g1t-cp-chip{display:inline-flex;flex-direction:column;align-items:center;gap:4px;padding:8px 10px;border-radius:14px;background:#fff;border:2px solid var(--color-line);font-weight:750;font-size:clamp(18px,2.8vw,28px);transition:transform .12s,background .12s;min-width:44px}\n.g1t-cp-chip.is-la{margin-bottom:44px}.g1t-cp-chip.is-so{margin-bottom:22px}.g1t-cp-chip.is-mi{margin-bottom:0}.g1t-cp-chip.is-do{margin-bottom:0}\n.g1t-cp-chip.is-rest{color:var(--color-subtle);border-style:dashed;font-weight:600}\n.g1t-cp-chip.is-now{background:#fff5cc;border-color:#c4a035;transform:scale(1.08)}\n.g1t-cp-s{font-size:13px;font-weight:750;padding:1px 8px;border-radius:999px;background:var(--sc);color:#fff}\n.g1t-cp-chip.is-mi .g1t-cp-s{color:#2a1f3d}\n.g1t-cp-dots{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}\n.g1t-cp-dot{min-width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:14px;border:2px solid var(--color-line);background:#fff;color:var(--color-subtle)}\n.g1t-cp-dot.is-now{background:var(--color-primary);border-color:var(--color-primary);color:var(--color-primary-fg,#fff)}\n.g1t-cp-dot.is-done{background:#d7efe6;border-color:#2f7d6b;color:#2f7d6b}\n.g1t-os-lanes{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:14px;margin:12px 0}\n.g1t-os-lane{border:1px solid var(--color-line);border-radius:var(--radius-xl);padding:12px;background:var(--color-surface,#f7f2fb);min-width:0}\n.g1t-os-lane.is-b{background:#fff}\n.g1t-os-lab{font-size:13px;font-weight:750;letter-spacing:.05em;text-transform:uppercase;color:var(--color-subtle);margin-bottom:6px}\n.g1t-os-words .g1t-cp-line{min-height:0;align-items:center}\n.g1t-os-words .g1t-cp-chip{font-size:clamp(15px,2vw,20px);padding:5px 8px;margin:0!important}\n.g1t-os-card .g1t-rsvg{width:100%;max-width:220px;height:auto}\n.g1t-os-bells{display:flex;gap:8px;margin:6px 0}\n.g1t-os-bells span{padding:4px 12px;border-radius:999px;background:var(--sc);color:#fff;font-weight:750}\n.g1t-os-bells span:last-child{color:#2a1f3d}\n.g1t-os-boxes{display:flex;gap:10px;margin-top:8px}\n.g1t-os-box{flex:1;max-width:110px;height:70px;border-radius:16px;border:2px solid var(--color-line);display:grid;place-items:center;font-size:26px;font-weight:800;color:var(--color-subtle);background:#fff;transition:background .08s}\n.g1t-os-box.is-now{background:var(--color-primary);border-color:var(--color-primary);color:#fff}\n.g1t-hn-card{display:flex;flex-direction:column;gap:8px}\n.g1t-hn-big{font-size:72px;text-align:center}\n.g1t-hn-tag{font-size:28px;align-self:center;margin-right:4px}\n.g1t-hn-list{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}\n.g1t-hn-chip{padding:6px 12px;border-radius:999px;border:1px solid var(--color-line);background:#fff;font-weight:650;font-size:15px}\n.g1t-hn-chip.is-done{background:#d7efe6;border-color:#2f7d6b}\n.g1t-hn-chip.is-now{border-color:var(--color-primary);box-shadow:0 0 0 2px var(--color-primary)}\n.g1t-hn-names{margin:10px 0}\n.g1t-hn-names summary{cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:center}\n.g1t-hn-input{width:100%;box-sizing:border-box;font:inherit;font-size:16px;padding:10px;border-radius:12px;border:1px solid var(--color-line)}\n.g1t-mz-choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin:10px 0}\n.g1t-mz-choice{font:inherit;cursor:pointer;border:2px solid var(--color-line);border-radius:var(--radius-xl);background:#fff;padding:10px;display:flex;align-items:center;gap:10px;min-height:120px;touch-action:manipulation;min-width:0}\n.g1t-mz-letter{font-size:30px;font-weight:800;color:var(--color-primary);min-width:34px}\n.g1t-mz-art{flex:1;min-width:0}\n.g1t-mz-svg{width:100%;height:auto;max-height:130px}\n.g1t-mz-g{stroke:#e0d7ec;stroke-width:2}\n.g1t-mz-line{fill:none;stroke:#2a1f3d;stroke-width:4;stroke-linejoin:round;stroke-linecap:round}\n.g1t-mz-empty{color:var(--color-subtle)}\n.g1t-rs-boxes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:12px 0}\n.g1t-rs-box{font:inherit;cursor:pointer;min-height:110px;border-radius:var(--radius-xl);border:2px solid var(--color-line);background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;touch-action:manipulation}\n.g1t-rs-n{font-size:30px;font-weight:800;color:var(--color-subtle)}\n.g1t-rs-e{font-size:36px;min-height:40px}\n.g1t-rs-box.is-now{background:#fff5cc;border-color:#c4a035}\n.g1t-rs-box.is-picked{border-color:var(--color-primary);box-shadow:0 0 0 3px var(--color-primary)}\n.g1t-rs-box.is-rest{background:#d7efe6;border-color:#2f7d6b}\n.g1t-rs-reveal .g1t-rsvg{max-width:100%;height:auto;width:min(100%,420px)}\n.g1t-hop-scene{position:relative;height:150px;border-radius:var(--radius-xl);background:linear-gradient(#e6f4ea 0 70%,#b7dfc0 70%);display:flex;align-items:flex-end;justify-content:center;gap:20px;overflow:hidden;margin:10px 0}\n.g1t-hop-e{font-size:80px;line-height:1;margin-bottom:14px;display:inline-block}\n.g1t-hop-e.is-hop{animation:g1t-hop .3s ease}\n@keyframes g1t-hop{50%{transform:translateY(-40px)}}\n.g1t-hop-scene.is-hidden .g1t-hop-e{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);opacity:.0}\n.g1t-hop-bush{font-size:110px;line-height:1}\n.g1t-hop-prints{display:flex;flex-wrap:wrap;gap:6px;font-size:30px;min-height:40px}\n.g1t-hop-nums{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}\n.g1t-hop-n{font:inherit;cursor:pointer;min-height:84px;border-radius:var(--radius-xl);border:2px solid var(--color-line);background:#fff;font-size:36px;font-weight:800;touch-action:manipulation}\n.g1t-mem{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:12px 0}\n.g1t-mem.is-6{grid-template-columns:repeat(3,minmax(0,1fr))}\n.g1t-mem-card{font:inherit;cursor:pointer;min-height:clamp(100px,14vw,150px);border-radius:var(--radius-xl);border:0;background:var(--color-primary);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;box-shadow:inset 0 -6px 0 rgba(0,0,0,.2);touch-action:manipulation;position:relative}\n.g1t-mem-card.is-up{background:#fff5cc;color:#2a1f3d;box-shadow:0 0 0 3px #c4a035}\n.g1t-mem-card.is-got{background:var(--mc);color:#fff}\n.g1t-mem-card.is-up[style]{background:var(--mc);color:#fff}\n.g1t-mem-e{font-size:clamp(36px,6vw,54px);line-height:1}\n.g1t-mem-e svg{width:1em;height:1em}\n.g1t-mem-q{font-size:44px;font-weight:800}\n.g1t-mem-k{position:absolute;top:6px;left:10px;font-size:13px;font-weight:700;opacity:.8}\n.g1t-mem-n{font-weight:750;font-size:15px;text-align:center}\n.g1t-fm-slots{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0}\n.g1t-fm-slot{border:2px solid var(--color-line);border-radius:var(--radius-xl);min-height:110px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:#fff}\n.g1t-fm-slot.is-now{background:#fff5cc;border-color:#c4a035}\n.g1t-fm-q{font-size:40px;font-weight:800;color:var(--color-subtle)}\n.g1t-fm-shape{display:inline-grid;place-items:center;width:40px;height:40px;font-weight:800;color:#fff;font-size:16px}\n.g1t-fm-shape.big{width:60px;height:60px;font-size:22px}\n.g1t-fm-shape.is-A{border-radius:50%;background:#e53935}\n.g1t-fm-shape.is-B{border-radius:8px;background:#1e88e5}\n.g1t-fm-opts{display:grid;gap:10px;margin:10px 0}\n.g1t-fm-opt{font:inherit;cursor:pointer;display:flex;gap:10px;align-items:center;justify-content:center;min-height:70px;border-radius:var(--radius-xl);border:2px solid var(--color-line);background:#fff;touch-action:manipulation}\n.g1t-pg-pieces{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}\n.g1t-pg-piece{font:inherit;cursor:pointer;text-align:left;min-height:48px;padding:8px 12px;border-radius:14px;border:1px solid var(--color-line);background:#fff;font-weight:650;touch-action:manipulation}\n.g1t-pg-piece.is-in{background:#d7efe6;border-color:#2f7d6b}\n.g1t-pg-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}\n.g1t-pg-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:14px;border:1px solid var(--color-line);background:#fff;font-size:18px;font-weight:700}\n.g1t-pg-num{width:34px;height:34px;border-radius:50%;background:var(--color-primary);color:#fff;display:grid;place-items:center;flex-shrink:0}\n.g1t-pg-name{flex:1;min-width:0}\n.g1t-pg-mini{min-height:40px;min-width:40px;padding:4px 10px}\n.g1t-pg-empty{color:var(--color-subtle)}\n.g1t-pg-step{text-align:center;padding:24px 12px;border-radius:var(--radius-xl);background:var(--color-surface,#f7f2fb);border:1px solid var(--color-line)}\n.g1t-pg-e{font-size:clamp(64px,12vw,120px);line-height:1}\n.g1t-pg-t{font-family:var(--font-display);font-size:clamp(28px,5vw,52px);font-weight:700;margin:10px 0}\n.g1t-pg-s{font-size:clamp(17px,2.4vw,24px);color:var(--color-muted)}\n.g1t-pg-count{margin-top:10px;font-size:14px;color:var(--color-subtle)}\n@media (max-width:640px){.g1t-os-lanes{grid-template-columns:1fr}.g1t-cp-chip{font-size:17px;padding:6px 7px;min-width:36px}.g1t-cp-chip.is-la{margin-bottom:30px}.g1t-cp-chip.is-so{margin-bottom:15px}.g1t-rs-boxes,.g1t-fm-slots{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.g1t-rs-box,.g1t-fm-slot{min-height:84px}.g1t-rs-n{font-size:22px}.g1t-fm-shape.big{width:44px;height:44px}.g1t-mem{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.g1t-mz-choices{grid-template-columns:1fr}.g1t-hop-e{font-size:60px}.g1t-hop-bush{font-size:84px}}\n@media (prefers-reduced-motion:reduce){.g1t-hop-e.is-hop{animation:none}.g1t-cp-chip{transition:none}}\n";
   var mounted = null;
 
   function mount(container) {
@@ -3027,18 +3706,26 @@
       current = null;
       body.innerHTML = "";
     }
-    function open(t) {
+    function parseHash() {
+      var raw = (location.hash || "").slice(1), q = raw.indexOf("?"), id = q < 0 ? raw : raw.slice(0, q), params = {};
+      if (q >= 0) raw.slice(q + 1).split("&").forEach(function (kv) { if (!kv) return; var i = kv.indexOf("="); try { params[decodeURIComponent(i < 0 ? kv : kv.slice(0, i))] = i < 0 ? "1" : decodeURIComponent(kv.slice(i + 1)); } catch (e) {} });
+      return { id: id, q: q < 0 ? "" : raw.slice(q + 1), params: params, raw: raw };
+    }
+    var openedRaw = "";
+    function open(t, pre) {
       closeCurrent();
       title.innerHTML = "";
       title.appendChild(t.ic ? h("span", { "aria-hidden": "true", class: "g1t-title-ic", html: t.ic }) : h("span", { "aria-hidden": "true" }, t.e));
       title.appendChild(document.createTextNode(t.name));
-      current = t.make();
+      PARAMS = (pre && pre.params) || {};
+      try { current = t.make(); } finally { PARAMS = {}; }
       current.id = t.id;
       body.appendChild(current.el);
       picker.hidden = true;
       stage.hidden = false;
       root.setAttribute("data-open", t.id);
-      setHash(t.id);
+      setHash(t.id + (pre && pre.q ? "?" + pre.q : ""));
+      openedRaw = pre ? pre.raw : t.id;
       stage.scrollIntoView({ block: "start" });
       try { title.focus({ preventScroll: true }); } catch (e) {}
     }
@@ -3073,8 +3760,8 @@
       if (current.key && current.key(String(e.key).toLowerCase())) e.preventDefault();
     }
     function onHash() {
-      var id = (location.hash || "").slice(1), t = TOOLS.filter(function (x) { return x.id === id; })[0];
-      if (t && (!current || current.id !== id)) open(t);
+      var ph = parseHash(), t = TOOLS.filter(function (x) { return x.id === ph.id; })[0];
+      if (t && (!current || current.id !== ph.id || (ph.q && ph.raw !== openedRaw))) open(t, ph);
     }
     document.addEventListener("keydown", onKey);
     document.addEventListener("fullscreenchange", onFs);
@@ -3094,8 +3781,8 @@
         if (root.parentNode) root.parentNode.removeChild(root);
       }
     };
-    var hash = (location.hash || "").slice(1);
-    if (hash) mounted.open(hash);
+    var ph0 = parseHash(), t0 = TOOLS.filter(function (x) { return x.id === ph0.id; })[0];
+    if (t0) open(t0, ph0);
   }
 
   function unmount() {

@@ -8,4 +8,5 @@ A free, single-page set of music tools for the classroom: a two-octave piano, xy
 - Link straight to a tool by adding `#` and its name, for example `#piano`, `#flash`, `#drumecho` or `#bingo`.
 - Hand-sign cards use the pictures in `assets/handsigns/` (do, re, mi, fa, so, la, ti, high do). Every sign is shown as a right hand, from the signer's own view.
 - Drum echo counts in (1, 2, 3, 4) before each turn; the count-in can be switched off.
+- Many tools take settings after the name, for example `#ostinato?ost=titita&inst=woodblock`, `#maze?notes=sml&len=4` or `#restspot?rests=2`. The settings only choose options; nothing plays until someone taps.
 - The volume meter uses the microphone only after a tap. Nothing is recorded or sent.
