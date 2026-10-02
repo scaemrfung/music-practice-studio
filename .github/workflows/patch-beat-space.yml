@@ -1,0 +1,26 @@
+name: One-off patch (Steady beat Space key)
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/patch-beat-space.yml']
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Apply patch
+        run: |
+          set -e
+          echo "aW1wb3J0IGhhc2hsaWIKcz1vcGVuKCdzdHVkaW8uanMnLGVuY29kaW5nPSd1dGY4JykucmVhZCgpCmE9JyAgICByZW5kZXJEb3RzKCk7IHNldEJwbShicG0pO1xuICAgIHJldHVybiB7IGVsOiBlbCwgc3RvcDogZnVuY3Rpb24gKCkgeyBsb29wLnN0b3AoKTsgc2lsZW5jZSgpOyB9IH07JwpiPScgICAgcmVuZGVyRG90cygpOyBzZXRCcG0oYnBtKTtcbiAgICByZXR1cm4geyBlbDogZWwsIHN0b3A6IGZ1bmN0aW9uICgpIHsgbG9vcC5zdG9wKCk7IHNpbGVuY2UoKTsgfSwga2V5OiBmdW5jdGlvbiAoaykgeyBpZiAoayA9PT0gIiAiKSB7IHRvZ2dsZSgpOyByZXR1cm4gdHJ1ZTsgfSByZXR1cm4gZmFsc2U7IH0gfTsnCmM9J1N3YXkgb24gdGhlIGJpZyBiZWF0czsgZG8gbm90IGNvdW50IGl0LiIpJwpkPSdTd2F5IG9uIHRoZSBiaWcgYmVhdHM7IGRvIG5vdCBjb3VudCBpdC4gS2V5czogU3BhY2UgPSBzdGFydCBvciBzdG9wLiIpJwphc3NlcnQgcy5jb3VudChhKT09MSBhbmQgcy5jb3VudChjKT09MQpvcGVuKCdzdHVkaW8uanMnLCd3JyxlbmNvZGluZz0ndXRmOCcpLndyaXRlKHMucmVwbGFjZShhLGIpLnJlcGxhY2UoYyxkKSkKaD1vcGVuKCdpbmRleC5odG1sJyxlbmNvZGluZz0ndXRmOCcpLnJlYWQoKQphc3NlcnQgaC5jb3VudCgnc3R1ZGlvLmpzP3Y9NScpPT0xCm9wZW4oJ2luZGV4Lmh0bWwnLCd3JyxlbmNvZGluZz0ndXRmOCcpLndyaXRlKGgucmVwbGFjZSgnc3R1ZGlvLmpzP3Y9NScsJ3N0dWRpby5qcz92PTYnKSkKZm9yIGYsZSBpbiAoKCdzdHVkaW8uanMnLCdiZDk0NmIyYTY0OWQxZjY5OTk4NGE1ZTJmY2RmNTc3NmYxZjFmNTg5MTA0MWE3YTMwYzFjYTkxYzFiYWNmYmRhJyksKCdpbmRleC5odG1sJywnZTZhMzZiMzJkNDczMmMxMWRhYjI3ZThhM2Y4NDFkNDQ5YWY4OGI3NDcyYzYwZGZhNTRhZmNjYTg3OGYyZDc5YycpKToKICAgIGFzc2VydCBoYXNobGliLnNoYTI1NihvcGVuKGYsJ3JiJykucmVhZCgpKS5oZXhkaWdlc3QoKT09ZSxmCnByaW50KCdwYXRjaGVkIG9rJykK" | base64 -d > /tmp/patch_beat.py
+          python3 /tmp/patch_beat.py
+      - name: Commit
+        run: |
+          git config user.name "Mr. Fung"
+          git config user.email "scae.mr.fung@gmail.com"
+          git add studio.js index.html
+          git commit -m "Steady beat: Space starts and stops the beat from anywhere on the page"
+          git push origin HEAD:main
