@@ -494,10 +494,10 @@
         feelSeg,
         seg([{ value: "wood", label: "Woodblock" }, { value: "drum", label: "Drum" }, { value: "clap", label: "Clap" }, { value: "sticks", label: "Sticks" }, { value: "none", label: "Silent" }], sound, function (v) { sound = v; }, "Sound")
       ]),
-      h("p", { class: "hint" }, "Pat, march or tap along with the circle. Tap “Tap the beat” in time with a song to match its speed. 6/8 swing: two big beats that rock like a pendulum, each with three small shaker ticks (Hickory Dickory Dock, Jack and Jill). Sway on the big beats; do not count it.")
+      h("p", { class: "hint" }, "Pat, march or tap along with the circle. Tap “Tap the beat” in time with a song to match its speed. 6/8 swing: two big beats that rock like a pendulum, each with three small shaker ticks (Hickory Dickory Dock, Jack and Jill). Sway on the big beats; do not count it. Keys: Space = start or stop.")
     ]);
     renderDots(); setBpm(bpm);
-    return { el: el, stop: function () { loop.stop(); silence(); } };
+    return { el: el, stop: function () { loop.stop(); silence(); }, key: function (k) { if (k === " ") { toggle(); return true; } return false; } };
   }
 
   /* ---------- Tool: xylophone and chime bells ---------- */
