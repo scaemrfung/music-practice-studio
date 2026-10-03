@@ -10,3 +10,5 @@ A free, single-page set of music tools for the classroom: a two-octave piano, xy
 - Drum echo counts in (1, 2, 3, 4) before each turn; the count-in can be switched off.
 - Many tools take settings after the name, for example `#ostinato?ost=titita&inst=woodblock`, `#maze?notes=sml&len=4` or `#restspot?rests=2`. The settings only choose options; nothing plays until someone taps.
 - The volume meter uses the microphone only after a tap. Nothing is recorded or sent.
+
+**Standing rule (Oct 3, 2026): no other-sites footer.** Do not add a "Mr. Fung's sites" footer or any list of links to Mr. Fung's other sites at the bottom of any page (Mr. Fung asked for them to be removed from every site). Navigation links inside this site are fine.
