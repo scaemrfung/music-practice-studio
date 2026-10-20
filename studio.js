@@ -3944,11 +3944,11 @@
       if (!prog.length) list.appendChild(h("li", { class: "g1t-pg-empty" }, "No pieces yet."));
       prog.forEach(function (p, i) {
         list.appendChild(h("li", { class: "g1t-pg-item" }, [h("span", { class: "g1t-pg-num" }, String(i + 1)), h("span", { class: "g1t-pg-name" }, [ICON[p.kind] + " ", p.n]),
-          i ? btn("↑", "btn-ghost g1t-pg-mini", function () { prog.splice(i - 1, 0, prog.splice(i, 1)[0]); renderAll(); }, { "aria-label": "Move " + p.n + " up" }) : null,
-          btn("✕", "btn-ghost g1t-pg-mini", function () { prog.splice(i, 1); renderAll(); }, { "aria-label": "Remove " + p.n })]));
+          i ? btn("↑", "btn-ghost g1t-pg-mini", function () { var k = prog.indexOf(p); if (k > 0) { prog.splice(k, 1); prog.splice(k - 1, 0, p); } renderAll(); }, { "aria-label": "Move " + p.n + " up" }) : null,
+          btn("✕", "btn-ghost g1t-pg-mini", function () { var k = prog.indexOf(p); if (k >= 0) prog.splice(k, 1); renderAll(); }, { "aria-label": "Remove " + p.n })]));
       });
     }
-    function renderAll() { renderChooser(); renderList(); status.textContent = prog.length + " of 4 pieces. " + (prog.length ? "Press ▶ Run the concert when you are ready." : "Tap pieces to add them."); }
+    function renderAll() { prog = prog.filter(Boolean); renderChooser(); renderList(); status.textContent = prog.length + " of 4 pieces. " + (prog.length ? "Press ▶ Run the concert when you are ready." : "Tap pieces to add them."); }
     function buildSteps() {
       steps = [{ e: "🚶", t: "Walk on quietly", s: "Find your spot. Hands still, eyes on the conductor." }, { e: "🙇", t: "Bow together", s: "Wait for the audience to be ready." }];
       prog.forEach(function (p, i) {
@@ -3965,7 +3965,7 @@
       stage.appendChild(row);
       status.textContent = st.t;
     }
-    function run() { if (!prog.length) { status.textContent = "Add at least one piece first."; return; } buildSteps(); si = 0; planBox.hidden = true; stage.hidden = false; renderStep(); }
+    function run() { prog = prog.filter(Boolean); if (!prog.length) { status.textContent = "Add at least one piece first."; return; } buildSteps(); si = 0; planBox.hidden = true; stage.hidden = false; renderStep(); }
     function endRun() { stage.hidden = true; planBox.hidden = false; si = -1; status.textContent = "The concert is over. 👏 Change the program or run it again."; }
     planBox.appendChild(h("h3", { class: "g1t-sub" }, "Our program"));
     planBox.appendChild(list);
