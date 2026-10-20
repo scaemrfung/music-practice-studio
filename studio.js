@@ -12,7 +12,7 @@
      Heavy pieces (room impulse response, noise, plucked strings, grain textures)
      are built once per audio context and reused. */
   var AC = null, master = null, bus = null, roomIn = null, noiseBuf = null, pinkBuf = null, roomIR = null, waves = {}, grainCache = {}, pluckCache = {};
-  var ROOM_WET = 0.16, ROOM_SEND = 1;
+  var ROOM_WET = 0.085, ROOM_SEND = 1;
 
   function softClipCurve() {
     var n = 2048, c = new Float32Array(n), i, x;
@@ -20,21 +20,21 @@
     return c;
   }
   /* Small classroom: early reflections from walls, floor and ceiling, then a
-     warm diffuse tail that loses its highs as it fades (~1 s). Built once. */
+     warm diffuse tail that loses its highs as it fades (~0.8 s). Built once. */
   function makeRoomIR(ctx) {
     ctx = ctx || AC;
-    var sr = ctx.sampleRate, len = Math.floor(sr * 1.1), ir = ctx.createBuffer(2, len, sr);
+    var sr = ctx.sampleRate, len = Math.floor(sr * 0.8), ir = ctx.createBuffer(2, len, sr);
     var early = [[0.0071, 0.42, 0.30], [0.0113, 0.28, 0.38], [0.0167, 0.33, 0.22], [0.0219, 0.18, 0.27], [0.0293, 0.22, 0.16], [0.0361, 0.12, 0.19], [0.0437, 0.14, 0.10], [0.0523, 0.08, 0.12]];
     for (var ch = 0; ch < 2; ch++) {
       var d = ir.getChannelData(ch), lp = 0, seed = ch ? 7919 : 104729, i;
       function rnd() { seed = (seed * 16807) % 2147483647; return seed / 1073741823.5 - 1; }
       for (i = 0; i < len; i++) {
-        var t = i / sr, decay = Math.exp(-t / 0.2), onset = Math.min(1, t / 0.02);
-        var k = 0.55 - 0.45 * Math.min(1, t / 0.7);           /* tail darkens over time */
+        var t = i / sr, decay = Math.exp(-t / 0.145), onset = Math.min(1, t / 0.02);
+        var k = 0.55 - 0.45 * Math.min(1, t / 0.5);           /* tail darkens over time */
         lp += k * (rnd() - lp);
         d[i] = lp * decay * onset * 0.55;
       }
-      early.forEach(function (e) { var j = Math.floor((e[0] + (ch ? 0.0013 : 0)) * sr); if (j < len) d[j] += (ch ? e[2] : e[1]); });
+      early.forEach(function (e) { var j = Math.floor((e[0] + (ch ? 0.0013 : 0)) * sr); if (j < len) d[j] += 0.8 * (ch ? e[2] : e[1]); });
     }
     return ir;
   }
