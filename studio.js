@@ -242,20 +242,21 @@
     piano: function (f, t, v, dur) {
       t = t || now(); v = v == null ? 1 : v;
       var low = Math.max(0, Math.min(1, Math.log(f / 65) / Math.log(16)));
-      dur = dur || (3.2 - 1.8 * low);
+      dur = dur || (1.5 - 0.5 * low);
       var B = 0.00018 * Math.pow(2, 2.2 * low), out = AC.createGain(), tone = AC.createBiquadFilter();
       tone.type = "lowpass"; tone.frequency.value = Math.min(AC.sampleRate * 0.45, f * (5 + 7 * v) + 1500); tone.Q.value = 0.4;
       out.gain.value = 0.42 * v; tone.connect(out); out.connect(bus);
       var N = Math.min(f < 200 ? 9 : f < 500 ? 7 : 5, Math.floor(AC.sampleRate * 0.42 / f)), norm = Math.sqrt(1 + B), last = null;
       for (var n = 1; n <= N; n++) {
         var fn = n * f * Math.sqrt(1 + B * n * n) / norm, a = Math.pow(n, -1.25) * (n === 1 ? 1 : 0.55 + 0.45 * v);
-        var tauA = (0.9 + 2.2 * (1 - low)) / (1 + 0.35 * (n - 1)), tauP = 0.12 / (1 + 0.2 * (n - 1));
+        var tauA = (0.4 + 0.6 * (1 - low)) / (1 + 0.35 * (n - 1)), tauP = 0.12 / (1 + 0.2 * (n - 1));
         var pair = n <= 3 ? [1 - 0.00035, 1 + 0.00035] : [1];
         pair.forEach(function (dt, k) {
           var g = AC.createGain(), pk = a / pair.length;
           g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(pk, t + 0.003);
           g.gain.setTargetAtTime(pk * 0.32, t + 0.003, tauP);
           g.gain.setTargetAtTime(0.0001, t + 0.003 + tauP * 2, tauA);
+          g.gain.setTargetAtTime(0, Math.max(t + 0.05, t + dur - 0.3), 0.06); /* damper release */
           g.gain.setValueAtTime(0, t + dur);
           g.connect(tone);
           var o = AC.createOscillator(); o.type = "sine"; o.frequency.value = fn * (n === 1 ? (k ? 1.00025 : 0.99975) : dt);
